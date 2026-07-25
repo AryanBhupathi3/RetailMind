@@ -56,22 +56,85 @@ export class PlannerTools {
     outputSchema: AnalyzeOutputSchema,
   })
   async analyze(input: z.infer<typeof AnalyzeInputSchema>, ctx: ExecutionContext) {
-    ctx.logger.info(`Analyzing ${input.businessType} opportunity in ${input.city}`);
+    // TEMPORARY DIAGNOSTICS (stage tracing).
+    // Deliberately uses ctx.logger, not console.error: only the framework
+    // logger emits the NITRO_LOG:: lines that NitroStudio's Logs panel
+    // renders, so console.error output is invisible there.
+    const t0 = Date.now();
+    const elapsed = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`;
+    ctx.logger.info(`[analyze] START ${input.businessType} / ${input.city}`);
 
+    ctx.logger.info(`[analyze] maps START (${elapsed()})`);
     const { zones } = await this.mapsService.findCandidateZones(input);
+    ctx.logger.info(`[analyze] maps DONE — ${zones.length} zones (${elapsed()})`);
 
-    const zoneOutputs = await Promise.all(
+    // Each zone is fetched independently. A transient upstream failure on one
+    // zone shouldn't discard the whole analysis, so failed zones are dropped
+    // (and logged) rather than rejecting everything — we still only ever
+    // report real data, just for the zones that resolved successfully.
+    ctx.logger.info(`[analyze] zone-tools START (${elapsed()})`);
+    const settled = await Promise.allSettled(
       zones.map(async (zone) => {
+        ctx.logger.info(`[analyze] places START "${zone.name}" (${elapsed()})`);
+        const placesPromise = this.placesService
+          .getCompetitors(zone, input.businessType)
+          .then((r) => {
+            ctx.logger.info(`[analyze] places DONE "${zone.name}" (${elapsed()})`);
+            return r;
+          });
+
+        ctx.logger.info(`[analyze] demographics START "${zone.name}" (${elapsed()})`);
+        const demographicsPromise = this.demographicsService
+          .getDemographics(zone)
+          .then((r) => {
+            ctx.logger.info(`[analyze] demographics DONE "${zone.name}" (${elapsed()})`);
+            return r;
+          });
+
+        ctx.logger.info(`[analyze] traffic START "${zone.name}" (${elapsed()})`);
+        const trafficPromise = this.trafficService.getTraffic(zone).then((r) => {
+          ctx.logger.info(`[analyze] traffic DONE "${zone.name}" (${elapsed()})`);
+          return r;
+        });
+
         const [places, demographics, traffic] = await Promise.all([
-          this.placesService.getCompetitors(zone, input.businessType),
-          this.demographicsService.getDemographics(zone),
-          this.trafficService.getTraffic(zone),
+          placesPromise,
+          demographicsPromise,
+          trafficPromise,
         ]);
 
         return { zone, places, demographics, traffic };
       })
     );
+    ctx.logger.info(`[analyze] zone-tools DONE (${elapsed()})`);
 
-    return this.opportunityEngine.evaluate(input, zoneOutputs);
+    const zoneOutputs = settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+    const failures = settled.flatMap((r) => (r.status === 'rejected' ? [r] : []));
+    if (failures.length > 0) {
+      ctx.logger.warn(
+        `${failures.length}/${zones.length} zones failed and were skipped: ` +
+          failures
+            .map((f) => (f.reason instanceof Error ? f.reason.message : String(f.reason)))
+            .join(' | ')
+      );
+    }
+
+    if (zoneOutputs.length === 0) {
+      throw new Error(
+        `Analysis failed for all ${zones.length} candidate zones. ` +
+          `Last error: ${
+            failures[0]?.reason instanceof Error
+              ? failures[0].reason.message
+              : String(failures[0]?.reason)
+          }`
+      );
+    }
+
+    ctx.logger.info(`[analyze] opportunity-engine START (${elapsed()})`);
+    const result = this.opportunityEngine.evaluate(input, zoneOutputs);
+    ctx.logger.info(`[analyze] opportunity-engine DONE (${elapsed()})`);
+    ctx.logger.info(`[analyze] COMPLETE — total ${elapsed()}`);
+
+    return result;
   }
 }

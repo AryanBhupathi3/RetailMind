@@ -1,89 +1,107 @@
 import { Injectable } from '@nitrostack/core';
 import type { AnalyzeInput, MapsResult, ZoneCandidate } from '../../common/types.js';
 import { haversineDistanceKm } from '../../common/geo-utils.js';
+import { fetchJsonWithRetry } from '../../common/http-utils.js';
 
-const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
-// The public overpass-api.de instance is frequently overloaded (504s/timeouts
-// under load). These are all real, free, keyless Overpass mirrors — tried in
-// order until one responds. This is resilience across real data sources, not
-// a fallback to mock data.
-const OVERPASS_URLS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
-// Nominatim's usage policy requires a descriptive, non-generic User-Agent
-// identifying the application; requests without one may be blocked.
-const USER_AGENT = 'RetailMind-Hackathon/1.0 (contact: retailmind-project)';
-const NOMINATIM_TIMEOUT_MS = 10_000;
-// Mirrors are raced in parallel (Promise.any), so this bounds the worst case
-// on its own — it is NOT summed across mirrors. Kept close to the Overpass
-// query's own embedded [timeout:10] so a slow server-side query and a
-// client-side abort land around the same time instead of us waiting on a
-// server that's already given up (or vice versa).
-const OVERPASS_TIMEOUT_MS = 12_000;
+const GEOAPIFY_GEOCODE_URL = 'https://api.geoapify.com/v1/geocode/search';
+const GEOAPIFY_PLACES_URL = 'https://api.geoapify.com/v2/places';
+
+const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_CANDIDATE_ZONES = 8;
-const PLACE_TAGS = ['suburb', 'neighbourhood', 'quarter', 'hamlet', 'locality'];
+// How many raw localities to pull before de-duplicating, distance-filtering
+// and selecting MAX_CANDIDATE_ZONES. Must be well above MAX_CANDIDATE_ZONES:
+// the API returns results in its own order, so a small limit silently
+// truncates the pool to whatever happens to come back first, collapsing the
+// geographic spread we sample from below.
+const RESULT_LIMIT = 200;
+// Geoapify's own taxonomy for named populated areas. Verified against the
+// live API — these are the closest equivalent to the OSM
+// suburb/neighbourhood place tags this tool previously queried.
+const LOCALITY_CATEGORIES = [
+  'populated_place.suburb',
+  'populated_place.neighbourhood',
+];
 
-interface NominatimResult {
-  lat: string;
-  lon: string;
-}
-
-interface OverpassElement {
-  type: 'node' | 'way' | 'relation';
+interface GeocodeResult {
   lat?: number;
   lon?: number;
-  center?: { lat: number; lon: number };
-  tags?: { name?: string };
 }
 
-interface OverpassResponse {
-  elements: OverpassElement[];
+interface GeocodeResponse {
+  results?: GeocodeResult[];
+}
+
+interface PlacesFeature {
+  properties?: {
+    place_id?: string;
+    name?: string;
+    lat?: number;
+    lon?: number;
+  };
+}
+
+interface PlacesResponse {
+  features?: PlacesFeature[];
 }
 
 /**
  * Maps Tool
  *
  * Finds real candidate localities/neighborhoods within `input.radius`
- * kilometers of `input.city`, using OpenStreetMap's free, keyless APIs:
- * Nominatim to geocode the city, Overpass to find named localities around
- * it. No mock data — on any failure this throws rather than silently
- * falling back to fake zones, so problems are visible during development.
+ * kilometers of `input.city`, using the Geoapify Geocoding + Places APIs
+ * (free tier, requires GEOAPIFY_API_KEY — see .env.example). No mock data —
+ * on any failure this throws rather than silently falling back to fake
+ * zones, so problems are visible during development.
  */
 @Injectable()
 export class MapsService {
   async findCandidateZones(input: AnalyzeInput): Promise<MapsResult> {
-    const cityCenter = await this.geocodeCity(input.city);
-    const zones = await this.findLocalitiesNear(cityCenter, input.radius, input.city);
+    const apiKey = process.env.GEOAPIFY_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        'GEOAPIFY_API_KEY is not set. Get a free key at https://www.geoapify.com and add it to your .env file (see .env.example).'
+      );
+    }
+
+    const cityCenter = await this.geocodeCity(input.city, apiKey);
+    const zones = await this.findLocalitiesNear(
+      cityCenter,
+      input.radius,
+      input.city,
+      apiKey
+    );
 
     return { zones };
   }
 
-  private async geocodeCity(city: string): Promise<{ lat: number; lng: number }> {
-    const url = new URL(NOMINATIM_URL);
-    url.searchParams.set('q', city);
-    url.searchParams.set('format', 'json');
+  private async geocodeCity(
+    city: string,
+    apiKey: string
+  ): Promise<{ lat: number; lng: number }> {
+    const url = new URL(GEOAPIFY_GEOCODE_URL);
+    url.searchParams.set('text', city);
+    url.searchParams.set('type', 'city');
     url.searchParams.set('limit', '1');
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('apiKey', apiKey);
 
-    const results = await this.fetchJson<NominatimResult[]>(
+    const response = await this.fetchJson<GeocodeResponse>(
       url.toString(),
-      'Nominatim geocoding',
-      undefined,
-      NOMINATIM_TIMEOUT_MS
+      'Geoapify geocoding'
     );
 
-    if (!Array.isArray(results) || results.length === 0) {
+    const first = response?.results?.[0];
+    if (!first) {
       throw new Error(
         `Could not find city "${city}". Check the spelling or try a more specific name (e.g. include the state/country).`
       );
     }
 
-    const lat = Number(results[0].lat);
-    const lng = Number(results[0].lon);
+    const lat = Number(first.lat);
+    const lng = Number(first.lon);
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      throw new Error(`Nominatim returned malformed coordinates for city "${city}".`);
+      throw new Error(`Geoapify returned malformed coordinates for city "${city}".`);
     }
 
     return { lat, lng };
@@ -92,39 +110,43 @@ export class MapsService {
   private async findLocalitiesNear(
     center: { lat: number; lng: number },
     radiusKm: number,
-    city: string
+    city: string,
+    apiKey: string
   ): Promise<ZoneCandidate[]> {
     const radiusMeters = Math.round(radiusKm * 1000);
-    const placeFilter = PLACE_TAGS.join('|');
-    const around = `around:${radiusMeters},${center.lat},${center.lng}`;
 
-    const query = `
-      [out:json][timeout:10];
-      (
-        node["place"~"^(${placeFilter})$"](${around});
-        way["place"~"^(${placeFilter})$"](${around});
-        relation["place"~"^(${placeFilter})$"](${around});
-      );
-      out center;
-    `;
+    const url = new URL(GEOAPIFY_PLACES_URL);
+    url.searchParams.set('categories', LOCALITY_CATEGORIES.join(','));
+    url.searchParams.set('filter', `circle:${center.lng},${center.lat},${radiusMeters}`);
+    // Deliberately NO proximity bias: biasing toward the centre makes the API
+    // return only the nearest localities (all within ~2km of the city centre
+    // for a dense city), which made the requested radius have no effect on
+    // the result at all. Unbiased, the pool spans the whole search circle.
+    url.searchParams.set('limit', String(RESULT_LIMIT));
+    url.searchParams.set('apiKey', apiKey);
 
-    const overpass = await this.queryOverpassWithFallback(query);
+    const response = await this.fetchJson<PlacesResponse>(
+      url.toString(),
+      'Geoapify locality search'
+    );
 
-    if (!overpass || !Array.isArray(overpass.elements)) {
-      throw new Error('Received malformed response from Overpass API.');
+    if (!response || !Array.isArray(response.features)) {
+      throw new Error('Received malformed response from Geoapify Places API (locality search).');
     }
 
     const seenNames = new Set<string>();
     const candidates: (ZoneCandidate & { distanceKm: number })[] = [];
 
-    for (const el of overpass.elements) {
-      const name = el.tags?.name?.trim();
-      const lat = el.lat ?? el.center?.lat;
-      const lng = el.lon ?? el.center?.lon;
+    for (const feature of response.features) {
+      const props = feature.properties;
+      const name = props?.name?.trim();
+      const lat = props?.lat;
+      const lng = props?.lon;
 
       if (!name || lat === undefined || lng === undefined) continue;
       if (seenNames.has(name)) continue;
 
+      // Verify independently of the provider's own filter.
       const distanceKm = haversineDistanceKm(center.lat, center.lng, lat, lng);
       if (distanceKm > radiusKm) continue;
 
@@ -138,88 +160,39 @@ export class MapsService {
       );
     }
 
-    return candidates
-      .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, MAX_CANDIDATE_ZONES)
-      .map(({ name, lat, lng }) => ({ name, lat, lng }));
+    candidates.sort((a, b) => a.distanceKm - b.distanceKm);
+
+    return this.selectSpreadZones(candidates).map(({ name, lat, lng }) => ({
+      name,
+      lat,
+      lng,
+    }));
   }
 
   /**
-   * Races all real Overpass mirrors in parallel, returning whichever
-   * responds first successfully. Only throws once every mirror has failed —
-   * still 100% real data sources, just resilient against any single mirror
-   * being overloaded, and without multiplying worst-case latency by trying
-   * mirrors one after another.
+   * Picks MAX_CANDIDATE_ZONES zones spread across the search area rather than
+   * simply the nearest ones.
+   *
+   * Taking the closest N always returns the same tightly-clustered set of
+   * city-centre localities no matter how large the requested radius is, which
+   * makes the radius input meaningless. Sampling at even intervals across the
+   * distance-sorted pool keeps the nearest zone, the farthest zone, and an
+   * even spread between them — so a larger radius genuinely widens the search.
    */
-  private async queryOverpassWithFallback(query: string): Promise<OverpassResponse> {
-    const attempts = OVERPASS_URLS.map((url) =>
-      this.fetchJson<OverpassResponse>(
-        url,
-        'Overpass locality search',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `data=${encodeURIComponent(query)}`,
-        },
-        OVERPASS_TIMEOUT_MS
-      ).catch((err) => {
-        throw new Error(`${url}: ${err instanceof Error ? err.message : String(err)}`);
-      })
-    );
+  private selectSpreadZones<T>(sorted: T[]): T[] {
+    if (sorted.length <= MAX_CANDIDATE_ZONES) return sorted;
 
-    try {
-      return await Promise.any(attempts);
-    } catch (err) {
-      if (err instanceof AggregateError) {
-        const messages = err.errors.map((e) => (e instanceof Error ? e.message : String(e)));
-        throw new Error(`All Overpass mirrors failed:\n${messages.join('\n')}`);
-      }
-      throw err;
+    const step = (sorted.length - 1) / (MAX_CANDIDATE_ZONES - 1);
+    const picked: T[] = [];
+
+    for (let i = 0; i < MAX_CANDIDATE_ZONES; i++) {
+      picked.push(sorted[Math.round(i * step)]);
     }
+
+    return picked;
   }
 
-  private async fetchJson<T>(
-    url: string,
-    context: string,
-    init: RequestInit | undefined,
-    timeoutMs: number
-  ): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        ...init,
-        headers: {
-          'User-Agent': USER_AGENT,
-          ...(init?.headers ?? {}),
-        },
-        signal: controller.signal,
-      });
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        throw new Error(`${context} request timed out after ${timeoutMs}ms.`);
-      }
-      throw new Error(
-        `${context} request failed: ${err instanceof Error ? err.message : String(err)}`
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (response.status === 429) {
-      throw new Error(`${context} rate limit exceeded (HTTP 429). Please wait and try again.`);
-    }
-
-    if (!response.ok) {
-      throw new Error(`${context} failed with HTTP ${response.status} ${response.statusText}.`);
-    }
-
-    try {
-      return (await response.json()) as T;
-    } catch {
-      throw new Error(`${context} returned a response that could not be parsed as JSON.`);
-    }
+  private fetchJson<T>(url: string, context: string): Promise<T> {
+    return fetchJsonWithRetry<T>(url, context, REQUEST_TIMEOUT_MS);
   }
 }
