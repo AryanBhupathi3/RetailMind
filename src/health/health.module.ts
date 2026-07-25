@@ -7,3 +7,4 @@ import { SystemHealthCheck } from './system.health';
   controllers: [SystemHealthCheck]
 })
 export class HealthModule {}
+
