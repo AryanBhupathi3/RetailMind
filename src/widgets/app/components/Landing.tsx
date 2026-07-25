@@ -1,32 +1,26 @@
 "use client";
 
 import Header from "./Header";
-import BusinessForm from "./BusinessForm";
+import BusinessForm, { type BusinessFormData } from "./BusinessForm";
 
 interface LandingProps {
-  onAnalyze: (data: {
-    businessType: string;
-    city: string;
-    budget: number;
-    radius: number;
-  }) => void;
+  onAnalyze: (data: BusinessFormData) => void;
 }
 
 export default function Landing({ onAnalyze }: LandingProps) {
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gradient-to-b from-green-50 via-white to-white">
       <div className="mx-auto max-w-6xl px-6">
         <Header />
 
-        <section className="grid items-center gap-12 py-16 md:grid-cols-2">
-          
+        <section className="grid items-center gap-12 py-12 md:grid-cols-2 md:py-20">
           {/* Left Section */}
           <div>
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-green-600">
+            <p className="mb-3 inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-green-700">
               Retail Location Intelligence
             </p>
 
-            <h2 className="text-4xl font-bold leading-tight md:text-5xl">
+            <h2 className="text-4xl font-bold leading-tight text-gray-900 md:text-5xl">
               Find the right place for your next business.
             </h2>
 
@@ -36,35 +30,34 @@ export default function Landing({ onAnalyze }: LandingProps) {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <span className="rounded-full bg-white px-4 py-2 text-sm shadow-sm">
-                Location Analysis
+              <span className="rounded-full bg-white px-4 py-2 text-sm text-gray-700 shadow-sm ring-1 ring-gray-100">
+                📍 Location Analysis
               </span>
 
-              <span className="rounded-full bg-white px-4 py-2 text-sm shadow-sm">
-                Competitor Insights
+              <span className="rounded-full bg-white px-4 py-2 text-sm text-gray-700 shadow-sm ring-1 ring-gray-100">
+                🏪 Competitor Insights
               </span>
 
-              <span className="rounded-full bg-white px-4 py-2 text-sm shadow-sm">
-                Traffic Intelligence
+              <span className="rounded-full bg-white px-4 py-2 text-sm text-gray-700 shadow-sm ring-1 ring-gray-100">
+                🚦 Traffic Intelligence
               </span>
             </div>
           </div>
 
           {/* Right Section */}
-          <div className="rounded-2xl bg-white p-7 shadow-lg">
+          <div className="rounded-2xl bg-white p-6 shadow-xl shadow-gray-200/60 ring-1 ring-gray-100 sm:p-8">
             <div className="mb-6">
-              <h3 className="text-xl font-semibold">
+              <h3 className="text-xl font-semibold text-gray-900">
                 Analyze a Location
               </h3>
 
               <p className="mt-1 text-sm text-gray-500">
-                Tell RetailMind what kind of business you're planning.
+                Tell RetailMind what kind of business you&apos;re planning.
               </p>
             </div>
 
             <BusinessForm onAnalyze={onAnalyze} />
           </div>
-
         </section>
       </div>
     </main>

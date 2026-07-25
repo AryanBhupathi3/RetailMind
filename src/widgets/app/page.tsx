@@ -3,18 +3,12 @@
 import { useState } from "react";
 import Landing from "./components/Landing";
 import Loading from "./components/Loading";
-
-interface BusinessData {
-  businessType: string;
-  city: string;
-  budget: number;
-  radius: number;
-}
+import type { BusinessFormData } from "./components/BusinessForm";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAnalyze = (data: BusinessData) => {
+  const handleAnalyze = (data: BusinessFormData) => {
     console.log("Business data:", data);
 
     setIsLoading(true);
