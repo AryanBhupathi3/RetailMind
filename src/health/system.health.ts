@@ -8,7 +8,7 @@ import { HealthCheck, HealthCheckInterface, HealthCheckResult } from '@nitrostac
 @HealthCheck({ 
   name: 'system', 
   description: 'System resource and uptime check',
-  interval: 120 // Check every 30 seconds
+  interval: 100// Check every 30 seconds
 })
 export class SystemHealthCheck implements HealthCheckInterface {
   private startTime: number;
