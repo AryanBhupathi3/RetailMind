@@ -1,5 +1,5 @@
 /**
- * Calculator MCP Server
+ * RetailMind MCP Server
  * 
  * Main entry point for the MCP server.
  * Uses the @McpApp decorator pattern for clean, NestJS-style architecture.
@@ -11,14 +11,14 @@
 
 import 'dotenv/config';
 import { McpApplicationFactory } from '@nitrostack/core';
-import { AppModule } from './app.module.js';
+import { PlannerModule } from './planner/planner.module.js';
 
 /**
  * Bootstrap the application
  */
 async function bootstrap() {
   // Create and start the MCP server
-  const server = await McpApplicationFactory.create(AppModule);
+  const server = await McpApplicationFactory.create(PlannerModule);
   await server.start();
 }
 
