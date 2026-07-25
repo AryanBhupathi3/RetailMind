@@ -1,34 +1,28 @@
 {
-  "name": "retailmind",
+  "name": "retailmind-widgets",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "RetailMind, AI Organisation specialised in retail expansion",
+  "description": "RetailMind widget frontend (Next.js)",
   "scripts": {
-    "dev": "nitrostack-cli dev",
-    "build": "nitrostack-cli build",
-    "start": "npm run build && nitrostack-cli start",
-    "start:prod": "nitrostack-cli start",
-    "upgrade": "nitrostack-cli upgrade",
-    "install:all": "nitrostack-cli install",
-    "widget": "npm --prefix src/widgets"
+    "dev": "next dev -p 3001 --port 3001",
+    "build": "next build",
+    "start": "next start -p 3001"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": ">=0.1.0",
-    "@nitrostack/core": "^1.0.14",
-    "dotenv": "^16.3.1",
-    "zod": "^3.22.4"
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@nitrostack/widgets": "^1.0.8",
+    "@modelcontextprotocol/ext-apps": ">=0.1.0"
   },
   "devDependencies": {
-    "@nitrostack/cli": "^1.0.15",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "postcss": "^8.5.23",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.3.3"
-  },
-  "author": "Synergy",
-  "nitrostack": {
-    "skillsVersion": "1.0.0"
   }
 }
