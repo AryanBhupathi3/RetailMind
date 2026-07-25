@@ -1,4 +1,4 @@
-import { Zone, AgentState } from "../types/retailmind";
+import { Zone, AgentState } from "../types/analysis";
 
 export const mockZones: Zone[] = [
   {
