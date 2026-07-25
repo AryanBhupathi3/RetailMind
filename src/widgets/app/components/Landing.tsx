@@ -1,77 +1,72 @@
 "use client";
 
-import { useState } from "react";
-import { BusinessInput } from "../types/analysis";
+import Header from "./Header";
+import BusinessForm from "./BusinessForm";
 
 interface LandingProps {
-  onAnalyze: (input: BusinessInput) => void;
+  onAnalyze: (data: {
+    businessType: string;
+    city: string;
+    budget: number;
+    radius: number;
+  }) => void;
 }
 
 export default function Landing({ onAnalyze }: LandingProps) {
-  const [businessType, setBusinessType] = useState("");
-  const [budget, setBudget] = useState("");
-  const [city, setCity] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const input: BusinessInput = {
-      businessType,
-      budget: Number(budget),
-      city,
-      radiusKm: 5,
-    };
-
-    onAnalyze(input);
-  };
-
   return (
-    <main>
-      <h1>RetailMind</h1>
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-6xl px-6">
+        <Header />
 
-      <p>Find the best location for your next business.</p>
+        <section className="grid items-center gap-12 py-16 md:grid-cols-2">
+          
+          {/* Left Section */}
+          <div>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-green-600">
+              Retail Location Intelligence
+            </p>
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Business Type</label>
+            <h2 className="text-4xl font-bold leading-tight md:text-5xl">
+              Find the right place for your next business.
+            </h2>
 
-          <input
-            type="text"
-            value={businessType}
-            onChange={(e) => setBusinessType(e.target.value)}
-            placeholder="Specialty Coffee Shop"
-            required
-          />
-        </div>
+            <p className="mt-6 max-w-xl text-lg text-gray-600">
+              RetailMind analyzes location, competition, demographics,
+              and traffic to identify promising retail opportunities.
+            </p>
 
-        <div>
-          <label>Budget</label>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <span className="rounded-full bg-white px-4 py-2 text-sm shadow-sm">
+                Location Analysis
+              </span>
 
-          <input
-            type="number"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-            placeholder="2500000"
-            required
-          />
-        </div>
+              <span className="rounded-full bg-white px-4 py-2 text-sm shadow-sm">
+                Competitor Insights
+              </span>
 
-        <div>
-          <label>City</label>
+              <span className="rounded-full bg-white px-4 py-2 text-sm shadow-sm">
+                Traffic Intelligence
+              </span>
+            </div>
+          </div>
 
-          <input
-            type="text"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Coimbatore"
-            required
-          />
-        </div>
+          {/* Right Section */}
+          <div className="rounded-2xl bg-white p-7 shadow-lg">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold">
+                Analyze a Location
+              </h3>
 
-        <button type="submit">
-          Analyze Opportunity
-        </button>
-      </form>
+              <p className="mt-1 text-sm text-gray-500">
+                Tell RetailMind what kind of business you're planning.
+              </p>
+            </div>
+
+            <BusinessForm onAnalyze={onAnalyze} />
+          </div>
+
+        </section>
+      </div>
     </main>
   );
 }

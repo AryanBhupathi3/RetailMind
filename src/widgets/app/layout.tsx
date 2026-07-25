@@ -1,5 +1,5 @@
 'use client';
-
+import "./global.css";
 import { WidgetLayout } from '@nitrostack/widgets';
 
 
