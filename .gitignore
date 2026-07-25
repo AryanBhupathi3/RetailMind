@@ -1,61 +1,88 @@
+# ===========================
 # Dependencies
+# ===========================
 node_modules/
 src/widgets/node_modules/
 
-# Build outputs
+# ===========================
+# Build Outputs
+# ===========================
 dist/
+out/
 src/widgets/.next/
 src/widgets/out/
 
-# Environment files
+# ===========================
+# Environment Files
+# ===========================
 .env
 .env.local
 .env.*.local
 
+# ===========================
 # IDE
-.idea/
+# ===========================
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
 
-# OS files
+# ===========================
+# OS Files
+# ===========================
 .DS_Store
 Thumbs.db
 
+# ===========================
 # Logs
+# ===========================
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Runtime data
+# ===========================
+# Runtime
+# ===========================
 pids/
 *.pid
 *.seed
 *.pid.lock
 
+# ===========================
 # Coverage
+# ===========================
 coverage/
 .nyc_output/
 
+# ===========================
 # Uploads
+# ===========================
 uploads/
 
-# TypeScript cache
+# ===========================
+# TypeScript
+# ===========================
 *.tsbuildinfo
 
-# Optional npm cache
+# ===========================
+# Cache
+# ===========================
 .npm/
-
-# Optional eslint cache
 .eslintcache
 
-# OAuth tokens/secrets (never commit these!)
+# ===========================
+# Secrets
+# ===========================
 *.pem
 *.key
 tokens.json
 
+# ===========================
+# AI / IDE Config
+# ===========================
 .agents/
 .antigravity/
 .claude/
@@ -65,8 +92,14 @@ tokens.json
 .gemini/
 .opencode/
 
-dist/
-node_modules/
-.env
+# ===========================
+# NitroStack (Optional)
+# ===========================
+.nitro/
+.nitro-cache/
 
-
+# ===========================
+# Misc
+# ===========================
+*.bak
+*.tmp

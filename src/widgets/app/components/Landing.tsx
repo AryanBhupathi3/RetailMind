@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BusinessInput } from "../types/retailmind";
+import { BusinessInput } from "../types/analysis";
 
 interface LandingProps {
   onAnalyze: (input: BusinessInput) => void;
