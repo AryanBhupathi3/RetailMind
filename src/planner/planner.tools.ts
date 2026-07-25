@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { defineTool } from "@nitrostack/core";
+import { Tool, ExecutionContext } from "@nitrostack/core";
 
 // 1. Data Contracts (Schemas)
 export const AnalyzeAreaInputSchema = z.object({
@@ -20,13 +20,15 @@ export const TrafficInputSchema = z.object({
   area: z.string().describe("The specific zone name, e.g., 'Gachibowli'")
 });
 
-// 2. Individual Functional Tools
-export const analyzeAreaTool = defineTool({
-  name: "analyze_area",
-  title: "Analyze Area",
-  description: "Identify candidate zones in a city",
-  inputSchema: AnalyzeAreaInputSchema,
-  async handler(input, ctx) {
+// 2. Planner Tools Class
+export class PlannerTools {
+  @Tool({
+    name: "analyze_area",
+    title: "Analyze Area",
+    description: "Identify candidate zones in a city",
+    inputSchema: AnalyzeAreaInputSchema
+  })
+  async analyze_area(input: z.infer<typeof AnalyzeAreaInputSchema>, ctx: ExecutionContext) {
     ctx.logger.info(`Finding zones in ${input.city} for ${input.business}`);
     return {
       areas: [
@@ -35,14 +37,14 @@ export const analyzeAreaTool = defineTool({
       ]
     };
   }
-});
 
-export const findCompetitorsTool = defineTool({
-  name: "find_competitors",
-  title: "Find Competitors",
-  description: "Count nearby competitor businesses and find anchor points",
-  inputSchema: FindCompetitorsInputSchema,
-  async handler(input, ctx) {
+  @Tool({
+    name: "find_competitors",
+    title: "Find Competitors",
+    description: "Count nearby competitor businesses and find anchor points",
+    inputSchema: FindCompetitorsInputSchema
+  })
+  async find_competitors(input: z.infer<typeof FindCompetitorsInputSchema>, ctx: ExecutionContext) {
     if (input.area === "Gachibowli") {
       return {
         location: "Gachibowli",
@@ -58,14 +60,14 @@ export const findCompetitorsTool = defineTool({
       anchor_points: ["Metro Station"]
     };
   }
-});
 
-export const demographicsTool = defineTool({
-  name: "demographics",
-  title: "Get Demographics",
-  description: "Fetch population and income data for a zone",
-  inputSchema: DemographicsInputSchema,
-  async handler(input, ctx) {
+  @Tool({
+    name: "demographics",
+    title: "Get Demographics",
+    description: "Fetch population and income data for a zone",
+    inputSchema: DemographicsInputSchema
+  })
+  async demographics(input: z.infer<typeof DemographicsInputSchema>, ctx: ExecutionContext) {
     return {
       area: input.area,
       population: 92000,
@@ -73,31 +75,30 @@ export const demographicsTool = defineTool({
       age_18_35_pct: 65
     };
   }
-});
 
-export const trafficTool = defineTool({
-  name: "traffic",
-  title: "Get Traffic",
-  description: "Fetch foot traffic estimates for a zone",
-  inputSchema: TrafficInputSchema,
-  async handler(input, ctx) {
+  @Tool({
+    name: "traffic",
+    title: "Get Traffic",
+    description: "Fetch foot traffic estimates for a zone",
+    inputSchema: TrafficInputSchema
+  })
+  async traffic(input: z.infer<typeof TrafficInputSchema>, ctx: ExecutionContext) {
     return {
       area: input.area,
       foot_traffic: 35000
     };
   }
-});
 
-// 3. Main Orchestration Tool (Opportunity Scoring Model)
-export const runRetailPlannerTool = defineTool({
-  name: "run_retail_planner",
-  title: "RetailMind Planner Agent",
-  description: "Orchestrates tools and computes the Opportunity Score for retail locations",
-  inputSchema: AnalyzeAreaInputSchema,
-  async handler(input, ctx) {
+  @Tool({
+    name: "run_retail_planner",
+    title: "RetailMind Planner Agent",
+    description: "Orchestrates tools and computes the Opportunity Score for retail locations",
+    inputSchema: AnalyzeAreaInputSchema
+  })
+  async run_retail_planner(input: z.infer<typeof AnalyzeAreaInputSchema>, ctx: ExecutionContext) {
     ctx.logger.info(`Starting RetailMind AI analysis for ${input.business} in ${input.city}`);
 
-    const areasResult = await analyzeAreaTool.handler(input, ctx);
+    const areasResult = await this.analyze_area(input, ctx);
     const evaluatedZones = [];
 
     const maxTraffic = 50000;
@@ -107,9 +108,9 @@ export const runRetailPlannerTool = defineTool({
     const maxAnchors = 5;
 
     for (const zone of areasResult.areas) {
-      const compData = await findCompetitorsTool.handler({ area: zone.name, business: input.business }, ctx);
-      const demoData = await demographicsTool.handler({ area: zone.name }, ctx);
-      const trafData = await trafficTool.handler({ area: zone.name }, ctx);
+      const compData = await this.find_competitors({ area: zone.name, business: input.business }, ctx);
+      const demoData = await this.demographics({ area: zone.name }, ctx);
+      const trafData = await this.traffic({ area: zone.name }, ctx);
 
       const trafficScore = (trafData.foot_traffic / maxTraffic) * 100;
       const popScore = (demoData.population / maxPop) * 100;
@@ -117,7 +118,6 @@ export const runRetailPlannerTool = defineTool({
       const compScore = (1 - (compData.competitor_count / maxComp)) * 100;
       const anchorScore = (compData.anchor_points.length / maxAnchors) * 100;
 
-      // Opportunity Score formula
       const opportunityScore = 
         (0.35 * trafficScore) + 
         (0.20 * popScore) + 
@@ -155,4 +155,4 @@ export const runRetailPlannerTool = defineTool({
       all_zones_ranked: evaluatedZones
     };
   }
-});
+}
