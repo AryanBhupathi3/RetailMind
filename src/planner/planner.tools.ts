@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Tool, ExecutionContext } from "@nitrostack/core";
+import { ExecutionContext } from "@nitrostack/core";
 
 // 1. Data Contracts (Schemas)
 export const AnalyzeAreaInputSchema = z.object({
@@ -20,14 +20,8 @@ export const TrafficInputSchema = z.object({
   area: z.string().describe("The specific zone name, e.g., 'Gachibowli'")
 });
 
-// 2. Planner Tools Class
+// 2. Pure Functions class for RetailMind AI Logic
 export class PlannerTools {
-  @Tool({
-    name: "analyze_area",
-    title: "Analyze Area",
-    description: "Identify candidate zones in a city",
-    inputSchema: AnalyzeAreaInputSchema
-  })
   async analyze_area(input: z.infer<typeof AnalyzeAreaInputSchema>, ctx: ExecutionContext) {
     ctx.logger.info(`Finding zones in ${input.city} for ${input.business}`);
     return {
@@ -38,12 +32,6 @@ export class PlannerTools {
     };
   }
 
-  @Tool({
-    name: "find_competitors",
-    title: "Find Competitors",
-    description: "Count nearby competitor businesses and find anchor points",
-    inputSchema: FindCompetitorsInputSchema
-  })
   async find_competitors(input: z.infer<typeof FindCompetitorsInputSchema>, ctx: ExecutionContext) {
     if (input.area === "Gachibowli") {
       return {
@@ -61,12 +49,6 @@ export class PlannerTools {
     };
   }
 
-  @Tool({
-    name: "demographics",
-    title: "Get Demographics",
-    description: "Fetch population and income data for a zone",
-    inputSchema: DemographicsInputSchema
-  })
   async demographics(input: z.infer<typeof DemographicsInputSchema>, ctx: ExecutionContext) {
     return {
       area: input.area,
@@ -76,12 +58,6 @@ export class PlannerTools {
     };
   }
 
-  @Tool({
-    name: "traffic",
-    title: "Get Traffic",
-    description: "Fetch foot traffic estimates for a zone",
-    inputSchema: TrafficInputSchema
-  })
   async traffic(input: z.infer<typeof TrafficInputSchema>, ctx: ExecutionContext) {
     return {
       area: input.area,
@@ -89,12 +65,6 @@ export class PlannerTools {
     };
   }
 
-  @Tool({
-    name: "run_retail_planner",
-    title: "RetailMind Planner Agent",
-    description: "Orchestrates tools and computes the Opportunity Score for retail locations",
-    inputSchema: AnalyzeAreaInputSchema
-  })
   async run_retail_planner(input: z.infer<typeof AnalyzeAreaInputSchema>, ctx: ExecutionContext) {
     ctx.logger.info(`Starting RetailMind AI analysis for ${input.business} in ${input.city}`);
 
