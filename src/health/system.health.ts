@@ -37,6 +37,7 @@ export class SystemHealthCheck implements HealthCheckInterface {
           ? 'System is healthy' 
           : 'High memory usage detected',
         details: {
+          service: 'RetailMind AI Planner', // Add your project name here
           uptime: `${uptimeSeconds}s`,
           memory: `${memoryUsedMB}MB / ${memoryTotalMB}MB (${Math.round(memoryPercent)}%)`,
           pid: process.pid,
