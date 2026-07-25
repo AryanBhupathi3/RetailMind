@@ -6,7 +6,6 @@ const nextConfig = {
   // Static export for production builds
   ...(process.env.NODE_ENV === 'production' && {
     output: 'export',
-    distDir: 'out',
     images: {
       unoptimized: true,
     },
@@ -34,7 +33,6 @@ const nextConfig = {
     // Disable build activity indicator which can cause issues
     devIndicators: {
       buildActivity: false,
-      buildActivityPosition: 'bottom-right',
     },
     
     // Faster dev server
