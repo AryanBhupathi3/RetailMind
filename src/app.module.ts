@@ -1,17 +1,17 @@
 import { McpApp, Module, ConfigModule } from '@nitrostack/core';
-import { CalculatorModule } from './modules/calculator/calculator.module.js';
-import { SystemHealthCheck } from './health/system.health.js';
+import { HealthModule } from './health/health.module';
+import { PlannerModule } from './planner/planner.module';
+import { SystemHealthCheck } from './health/system.health';
 
 /**
  * Root Application Module
  * 
- * This is the main module that bootstraps the MCP server.
- * It registers all feature modules and health checks.
+ * This is the main module that bootstraps the MCP server for RetailMind AI.
  */
 @McpApp({
   module: AppModule,
   server: {
-    name: 'calculator-server',
+    name: 'retailmind-ai-server',
     version: '1.0.0'
   },
   logging: {
@@ -19,16 +19,16 @@ import { SystemHealthCheck } from './health/system.health.js';
   }
 })
 @Module({
-  name: 'app',
-  description: 'Root application module',
+  name: 'RetailMindApp',
+  description: 'Root application module for RetailMind AI Planner',
   imports: [
     ConfigModule.forRoot(),
-    CalculatorModule
+    HealthModule,
+    PlannerModule
   ],
   providers: [
     // Health Checks
     SystemHealthCheck,
   ]
 })
-export class AppModule {}
-
+export class AppModule {} 
