@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 
+export interface BusinessFormData {
+  businessType: string;
+  city: string;
+  budget: number;
+  radius: number;
+}
+
 interface BusinessFormProps {
-  onAnalyze: (data: {
-    businessType: string;
-    city: string;
-    budget: number;
-    radius: number;
-  }) => void;
+  onAnalyze: (data: BusinessFormData) => void;
 }
 
 export default function BusinessForm({ onAnalyze }: BusinessFormProps) {
@@ -32,7 +34,7 @@ export default function BusinessForm({ onAnalyze }: BusinessFormProps) {
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Business Type */}
       <div>
-        <label className="mb-2 block font-medium">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           Business Type
         </label>
 
@@ -42,13 +44,13 @@ export default function BusinessForm({ onAnalyze }: BusinessFormProps) {
           onChange={(e) => setBusinessType(e.target.value)}
           placeholder="e.g. Coffee Shop"
           required
-          className="w-full rounded-xl border p-3"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-gray-900 outline-none transition focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-500/10"
         />
       </div>
 
       {/* City */}
       <div>
-        <label className="mb-2 block font-medium">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           City / Location
         </label>
 
@@ -58,47 +60,48 @@ export default function BusinessForm({ onAnalyze }: BusinessFormProps) {
           onChange={(e) => setCity(e.target.value)}
           placeholder="e.g. Coimbatore"
           required
-          className="w-full rounded-xl border p-3"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-gray-900 outline-none transition focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-500/10"
         />
       </div>
 
-      {/* Budget */}
-      <div>
-        <label className="mb-2 block font-medium">
-          Budget
-        </label>
+      {/* Budget + Radius */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Budget
+          </label>
 
-        <input
-          type="number"
-          value={budget}
-          onChange={(e) => setBudget(e.target.value)}
-          placeholder="Enter investment budget"
-          min="0"
-          required
-          className="w-full rounded-xl border p-3"
-        />
-      </div>
+          <input
+            type="number"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            placeholder="₹ Amount"
+            min="0"
+            required
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-gray-900 outline-none transition focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-500/10"
+          />
+        </div>
 
-      {/* Radius */}
-      <div>
-        <label className="mb-2 block font-medium">
-          Search Radius (km)
-        </label>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Radius (km)
+          </label>
 
-        <input
-          type="number"
-          value={radius}
-          onChange={(e) => setRadius(e.target.value)}
-          min="1"
-          max="50"
-          required
-          className="w-full rounded-xl border p-3"
-        />
+          <input
+            type="number"
+            value={radius}
+            onChange={(e) => setRadius(e.target.value)}
+            min="1"
+            max="50"
+            required
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-gray-900 outline-none transition focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-500/10"
+          />
+        </div>
       </div>
 
       <button
         type="submit"
-        className="w-full rounded-xl bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-700"
+        className="w-full rounded-xl bg-green-600 px-5 py-3.5 font-semibold text-white shadow-sm shadow-green-600/20 transition hover:bg-green-700 hover:shadow-md active:scale-[0.99]"
       >
         Analyze Location
       </button>
