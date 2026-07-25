@@ -1,5 +1,5 @@
 import { Module } from '@nitrostack/core';
-import { SystemHealthCheck } from './system.health.ts';
+import { SystemHealthCheck } from './system.health';
 
 @Module({
   name: 'health',
