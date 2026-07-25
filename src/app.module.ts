@@ -1,7 +1,7 @@
 import { McpApp, Module, ConfigModule } from '@nitrostack/core';
-import { HealthModule } from './health/health.module';
-import { PlannerModule } from './planner/planner.module';
-import { SystemHealthCheck } from './health/system.health';
+import { HealthModule } from './health/health.module.js';
+import { PlannerModule } from './planner/planner.module.js';
+import { SystemHealthCheck } from './health/system.health.js';
 
 /**
  * Root Application Module

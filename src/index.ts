@@ -11,14 +11,14 @@
 
 import 'dotenv/config';
 import { McpApplicationFactory } from '@nitrostack/core';
-import { PlannerModule } from './planner/planner.module.js';
+import { AppModule } from './app.module.js';
 
 /**
  * Bootstrap the application
  */
 async function bootstrap() {
   // Create and start the MCP server
-  const server = await McpApplicationFactory.create(PlannerModule);
+  const server = await McpApplicationFactory.create(AppModule);
   await server.start();
 }
 

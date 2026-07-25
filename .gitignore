@@ -103,3 +103,4 @@ tokens.json
 # ===========================
 *.bak
 *.tmp
+.nitrostudio/
