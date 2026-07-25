@@ -1,128 +1,77 @@
-import { z } from "zod";
-import { ExecutionContext } from "@nitrostack/core";
+import { ToolDecorator as Tool, Injectable, z, ExecutionContext } from '@nitrostack/core';
+import { MapsService } from '../tools/maps/maps.service.js';
+import { PlacesService } from '../tools/places/places.service.js';
+import { DemographicsService } from '../tools/demographics/demographics.service.js';
+import { TrafficService } from '../tools/traffic/traffic.service.js';
+import { OpportunityEngineService } from '../opportunity/opportunity-engine.service.js';
 
-// 1. Data Contracts (Schemas)
-export const AnalyzeAreaInputSchema = z.object({
-  city: z.string().describe("The city to analyze, e.g., 'Hyderabad'"),
-  business: z.string().describe("The type of business, e.g., 'Coffee Shop'")
+const AnalyzeInputSchema = z.object({
+  businessType: z.string().describe("Type of business, e.g., 'Coffee Shop'"),
+  city: z.string().describe("City to analyze, e.g., 'Coimbatore'"),
+  budget: z.number().describe('Investment budget for the business'),
+  radius: z.number().describe('Search radius in kilometers'),
 });
 
-export const FindCompetitorsInputSchema = z.object({
-  area: z.string().describe("The specific zone name, e.g., 'Gachibowli'"),
-  business: z.string().describe("The type of business, e.g., 'Coffee Shop'")
+const AnalyzeOutputSchema = z.object({
+  opportunityScore: z.number(),
+  recommendedArea: z.string(),
+  traffic: z.number(),
+  competition: z.number(),
+  demographics: z.number(),
+  executiveSummary: z.string(),
 });
 
-export const DemographicsInputSchema = z.object({
-  area: z.string().describe("The specific zone name, e.g., 'Gachibowli'")
-});
-
-export const TrafficInputSchema = z.object({
-  area: z.string().describe("The specific zone name, e.g., 'Gachibowli'")
-});
-
-// 2. Pure Functions class for RetailMind AI Logic
+/**
+ * Planner
+ *
+ * Orchestrates the four independent tools (Maps, Places, Demographics,
+ * Traffic) and hands their outputs to the Opportunity Engine. Contains no
+ * scoring logic and no mock data of its own — both live in their own
+ * modules, so this file never needs to change when a tool is swapped for
+ * a real API.
+ */
+@Injectable({
+  deps: [
+    MapsService,
+    PlacesService,
+    DemographicsService,
+    TrafficService,
+    OpportunityEngineService,
+  ],
+})
 export class PlannerTools {
-  async analyze_area(input: z.infer<typeof AnalyzeAreaInputSchema>, ctx: ExecutionContext) {
-    ctx.logger.info(`Finding zones in ${input.city} for ${input.business}`);
-    return {
-      areas: [
-        { name: "Gachibowli", lat: 17.443, lng: 78.377 },
-        { name: "Madhapur", lat: 17.451, lng: 78.390 }
-      ]
-    };
-  }
+  constructor(
+    private readonly mapsService: MapsService,
+    private readonly placesService: PlacesService,
+    private readonly demographicsService: DemographicsService,
+    private readonly trafficService: TrafficService,
+    private readonly opportunityEngine: OpportunityEngineService
+  ) {}
 
-  async find_competitors(input: z.infer<typeof FindCompetitorsInputSchema>, ctx: ExecutionContext) {
-    if (input.area === "Gachibowli") {
-      return {
-        location: "Gachibowli",
-        competitor_count: 8,
-        competitors: ["Starbucks", "Cafe Coffee Day"],
-        anchor_points: ["Mindspace IT Park", "Raidurg Metro"]
-      };
-    }
-    return {
-      location: input.area,
-      competitor_count: 4,
-      competitors: ["Local Cafe"],
-      anchor_points: ["Metro Station"]
-    };
-  }
+  @Tool({
+    name: 'analyze',
+    description:
+      'Analyze retail opportunity for a business type, city, budget, and search radius. Returns an opportunity score, recommended area, and executive summary.',
+    inputSchema: AnalyzeInputSchema,
+    outputSchema: AnalyzeOutputSchema,
+  })
+  async analyze(input: z.infer<typeof AnalyzeInputSchema>, ctx: ExecutionContext) {
+    ctx.logger.info(`Analyzing ${input.businessType} opportunity in ${input.city}`);
 
-  async demographics(input: z.infer<typeof DemographicsInputSchema>, ctx: ExecutionContext) {
-    return {
-      area: input.area,
-      population: 92000,
-      median_income: 1200,
-      age_18_35_pct: 65
-    };
-  }
+    const { zones } = await this.mapsService.findCandidateZones(input);
 
-  async traffic(input: z.infer<typeof TrafficInputSchema>, ctx: ExecutionContext) {
-    return {
-      area: input.area,
-      foot_traffic: 35000
-    };
-  }
+    const zoneOutputs = await Promise.all(
+      zones.map(async (zone) => {
+        const [places, demographics, traffic] = await Promise.all([
+          this.placesService.getCompetitors(zone, input.businessType),
+          this.demographicsService.getDemographics(zone),
+          this.trafficService.getTraffic(zone),
+        ]);
 
-  async run_retail_planner(input: z.infer<typeof AnalyzeAreaInputSchema>, ctx: ExecutionContext) {
-    ctx.logger.info(`Starting RetailMind AI analysis for ${input.business} in ${input.city}`);
+        return { zone, places, demographics, traffic };
+      })
+    );
 
-    const areasResult = await this.analyze_area(input, ctx);
-    const evaluatedZones = [];
-
-    const maxTraffic = 50000;
-    const maxPop = 100000;
-    const maxIncome = 2000;
-    const maxComp = 12;
-    const maxAnchors = 5;
-
-    for (const zone of areasResult.areas) {
-      const compData = await this.find_competitors({ area: zone.name, business: input.business }, ctx);
-      const demoData = await this.demographics({ area: zone.name }, ctx);
-      const trafData = await this.traffic({ area: zone.name }, ctx);
-
-      const trafficScore = (trafData.foot_traffic / maxTraffic) * 100;
-      const popScore = (demoData.population / maxPop) * 100;
-      const incomeScore = (demoData.median_income / maxIncome) * 100;
-      const compScore = (1 - (compData.competitor_count / maxComp)) * 100;
-      const anchorScore = (compData.anchor_points.length / maxAnchors) * 100;
-
-      const opportunityScore = 
-        (0.35 * trafficScore) + 
-        (0.20 * popScore) + 
-        (0.15 * incomeScore) + 
-        (0.15 * compScore) + 
-        (0.05 * anchorScore);
-
-      let recommendation = "Not Recommended";
-      if (opportunityScore > 85) {
-        recommendation = "Highly Recommended";
-      } else if (opportunityScore >= 70) {
-        recommendation = "Recommended";
-      }
-
-      evaluatedZones.push({
-        area: zone.name,
-        coordinates: { lat: zone.lat, lng: zone.lng },
-        score: Math.round(opportunityScore * 10) / 10,
-        recommendation,
-        metrics: {
-          foot_traffic: trafData.foot_traffic,
-          population: demoData.population,
-          competitors: compData.competitor_count,
-          anchors: compData.anchor_points
-        }
-      });
-    }
-
-    evaluatedZones.sort((a, b) => b.score - a.score);
-
-    return {
-      city: input.city,
-      business: input.business,
-      top_recommendation: evaluatedZones[0],
-      all_zones_ranked: evaluatedZones
-    };
+    return this.opportunityEngine.evaluate(input, zoneOutputs);
   }
 }
