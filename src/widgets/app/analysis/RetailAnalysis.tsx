@@ -5,7 +5,7 @@ import Header from "../components/Header";
 import ScoreCard from "../components/ScoreCard";
 import OpportunityCard from "../components/OpportunityCard";
 import ReportCard from "../components/ReportCard";
-import HeatMap from "../components/HeatMap";
+import OpportunityMap from "../components/OpportunityMap";
 import { useAnalysis } from "../hooks/useAnalysis";
 
 export default function RetailAnalysis({ data }: { data?: unknown }) {
@@ -91,7 +91,7 @@ export default function RetailAnalysis({ data }: { data?: unknown }) {
         </section>
 
         <section className="mt-8">
-          <HeatMap zones={zones} topZoneId={topZone.zone.id} />
+          <OpportunityMap zones={zones} topZoneId={topZone.zone.id} />
         </section>
 
         <section className="mt-8">

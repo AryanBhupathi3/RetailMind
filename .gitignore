@@ -104,3 +104,6 @@ tokens.json
 *.bak
 *.tmp
 .nitrostudio/
+
+# Added by nitrostack pack
+.git/
