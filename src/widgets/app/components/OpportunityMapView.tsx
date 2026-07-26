@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -9,7 +9,11 @@ import {
   Tooltip,
   useMap,
 } from "react-leaflet";
-import type { LatLngBoundsExpression, LatLngTuple } from "leaflet";
+import type {
+  CircleMarker as LeafletCircleMarker,
+  LatLngBoundsExpression,
+  LatLngTuple,
+} from "leaflet";
 // Vendored Leaflet CSS. The upstream stylesheet cannot be imported directly
 // because the widget bundler has no PNG loader — see the file's header.
 import "./leaflet-core.css";
@@ -18,6 +22,10 @@ import type { ZoneAnalysis } from "../hooks/useAnalysis";
 interface OpportunityMapViewProps {
   zones: ZoneAnalysis[];
   topZoneId: string;
+  /** Zone currently hovered in the card grid below the map. */
+  hoveredZoneId?: string | null;
+  /** Zone the user clicked in the card grid; the map flies to it. */
+  focusedZoneId?: string | null;
 }
 
 /**
@@ -62,10 +70,51 @@ function FitToZones({ zones }: { zones: ZoneAnalysis[] }) {
   return null;
 }
 
+/**
+ * Flies the map to a zone selected in the card grid and opens its popup, so a
+ * click in the report and a click on the map end in the same place.
+ */
+function FocusZone({
+  zones,
+  focusedZoneId,
+  markers,
+}: {
+  zones: ZoneAnalysis[];
+  focusedZoneId?: string | null;
+  markers: React.MutableRefObject<Record<string, LeafletCircleMarker | null>>;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!focusedZoneId) return;
+
+    const zone = zones.find((z) => z.zone.id === focusedZoneId);
+    if (!zone) return;
+
+    map.flyTo([zone.zone.latitude, zone.zone.longitude], 15, {
+      duration: 0.7,
+    });
+
+    // Wait for the flight to finish before opening, otherwise Leaflet
+    // repositions the popup mid-animation and it can end up off-screen.
+    const timer = setTimeout(() => {
+      markers.current[focusedZoneId]?.openPopup();
+    }, 750);
+
+    return () => clearTimeout(timer);
+  }, [map, zones, focusedZoneId, markers]);
+
+  return null;
+}
+
 export default function OpportunityMapView({
   zones,
   topZoneId,
+  hoveredZoneId,
+  focusedZoneId,
 }: OpportunityMapViewProps) {
+  const markers = useRef<Record<string, LeafletCircleMarker | null>>({});
+
   if (zones.length === 0) return null;
 
   return (
@@ -78,29 +127,41 @@ export default function OpportunityMapView({
       className="h-full w-full"
       style={{ background: "#f8fafc" }}
     >
+      {/* CartoDB Positron: light, low-label basemap so the score markers are
+          the loudest thing on the map. Still plain OSM-derived XYZ tiles —
+          no API key, no account, no new data source. */}
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
+        maxZoom={20}
       />
 
       <FitToZones zones={zones} />
+      <FocusZone zones={zones} focusedZoneId={focusedZoneId} markers={markers} />
 
       {zones.map((z) => {
         const isTop = z.zone.id === topZoneId;
+        const isHovered = z.zone.id === hoveredZoneId;
         const color = tierColors[z.tier];
+        const baseRadius = isTop ? 14 : 8;
 
         return (
           <CircleMarker
             key={z.zone.id}
+            ref={(instance) => {
+              markers.current[z.zone.id] = instance;
+            }}
             center={[z.zone.latitude, z.zone.longitude]}
             // The recommended zone is deliberately larger and more opaque so
-            // it reads as the answer at a glance.
-            radius={isTop ? 14 : 8}
+            // it reads as the answer at a glance; hovering its card in the
+            // report below grows whichever marker it refers to.
+            radius={isHovered ? baseRadius + 6 : baseRadius}
             pathOptions={{
-              color: isTop ? "#15803d" : color,
-              weight: isTop ? 3 : 2,
+              color: isHovered ? "#0f172a" : isTop ? "#15803d" : color,
+              weight: isHovered ? 4 : isTop ? 3 : 2,
               fillColor: color,
-              fillOpacity: isTop ? 0.85 : 0.6,
+              fillOpacity: isHovered ? 0.95 : isTop ? 0.85 : 0.6,
             }}
           >
             {isTop && (

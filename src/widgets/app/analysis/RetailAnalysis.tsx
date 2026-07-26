@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
 import ScoreCard from "../components/ScoreCard";
@@ -10,6 +11,12 @@ import { useAnalysis } from "../hooks/useAnalysis";
 
 export default function RetailAnalysis({ data }: { data?: unknown }) {
   const analysis = useAnalysis(data);
+
+  // Links the zone cards to the map: hovering a card highlights its marker,
+  // clicking one flies the map to it. Hooks stay above the early return so
+  // their order is stable across renders.
+  const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
+  const [focusedZoneId, setFocusedZoneId] = useState<string | null>(null);
 
   // Reached by opening /analysis directly, or after a page reload cleared the
   // stored result. Showing a prompt is the honest response — there is no data
@@ -91,13 +98,27 @@ export default function RetailAnalysis({ data }: { data?: unknown }) {
         </section>
 
         <section className="mt-8">
-          <OpportunityMap zones={zones} topZoneId={topZone.zone.id} />
+          <OpportunityMap
+            zones={zones}
+            topZoneId={topZone.zone.id}
+            hoveredZoneId={hoveredZoneId}
+            focusedZoneId={focusedZoneId}
+          />
         </section>
 
         <section className="mt-8">
-          <h3 className="mb-4 text-xl font-semibold text-gray-900">
+          <h3 className="mb-1 text-xl font-semibold text-gray-900">
             All Analyzed Zones
           </h3>
+
+          {/* States plainly that area population is a shared, catchment-level
+              measurement rather than a per-zone one, so an identical figure
+              across cards reads as intended rather than as a bug. */}
+          <p className="mb-4 text-sm text-gray-500">
+            Competition, footfall and cost pressure are measured per zone. Area
+            population is measured once for the surrounding city catchment, so
+            it is the same for every zone here.
+          </p>
 
           <div className="grid gap-5 md:grid-cols-3">
             {zones.map((zoneAnalysis) => (
@@ -105,6 +126,9 @@ export default function RetailAnalysis({ data }: { data?: unknown }) {
                 key={zoneAnalysis.zone.id}
                 analysis={zoneAnalysis}
                 highlighted={zoneAnalysis.zone.id === topZone.zone.id}
+                isActive={zoneAnalysis.zone.id === hoveredZoneId}
+                onHoverChange={setHoveredZoneId}
+                onSelect={setFocusedZoneId}
               />
             ))}
           </div>

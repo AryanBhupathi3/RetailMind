@@ -6,6 +6,10 @@ import type { ZoneAnalysis } from "../hooks/useAnalysis";
 interface OpportunityMapProps {
   zones: ZoneAnalysis[];
   topZoneId: string;
+  /** Zone hovered in the card grid below; highlights the matching marker. */
+  hoveredZoneId?: string | null;
+  /** Zone clicked in the card grid below; the map flies to it. */
+  focusedZoneId?: string | null;
 }
 
 /**
@@ -25,6 +29,8 @@ const OpportunityMapView = dynamic(() => import("./OpportunityMapView"), {
 export default function OpportunityMap({
   zones,
   topZoneId,
+  hoveredZoneId,
+  focusedZoneId,
 }: OpportunityMapProps) {
   return (
     <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-gray-100">
@@ -47,11 +53,17 @@ export default function OpportunityMap({
       {/* z-0 keeps Leaflet's stacking contexts from painting over the rest of
           the report; the height mirrors the previous visualization. */}
       <div className="relative z-0 h-72 w-full overflow-hidden rounded-xl ring-1 ring-gray-100 sm:h-96">
-        <OpportunityMapView zones={zones} topZoneId={topZoneId} />
+        <OpportunityMapView
+          zones={zones}
+          topZoneId={topZoneId}
+          hoveredZoneId={hoveredZoneId}
+          focusedZoneId={focusedZoneId}
+        />
       </div>
 
       <p className="mt-3 text-center text-xs text-gray-400">
-        Real zone coordinates on OpenStreetMap. Click a marker for its scores.
+        Real zone coordinates. Click a marker for its scores, or hover a zone
+        card below to locate it.
       </p>
     </div>
   );
