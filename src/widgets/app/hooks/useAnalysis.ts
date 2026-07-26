@@ -1,5 +1,8 @@
-import { mockAgents, mockZones } from "../data/mockData";
-import type { AgentState, Zone } from "../types/analysis";
+"use client";
+
+import { useEffect, useState } from "react";
+import { loadStoredAnalysis, type AnalyzeResponse, type ZoneScore } from "../lib/api";
+import type { Zone } from "../types/analysis";
 
 export type CompetitionLevel = "Low" | "Medium" | "High";
 export type OpportunityTier = "high" | "medium" | "low";
@@ -16,7 +19,6 @@ export interface ZoneAnalysis {
 export interface AnalysisSummary {
   zones: ZoneAnalysis[];
   topZone: ZoneAnalysis;
-  agents: AgentState[];
   executiveSummary: string;
   recommendationReasons: string[];
   risks: string[];
@@ -35,60 +37,78 @@ function getOpportunityTier(opportunityScore: number): OpportunityTier {
   return "low";
 }
 
-export function useAnalysis(): AnalysisSummary {
-  const ranked = [...mockZones].sort(
+function toZone(score: ZoneScore, index: number): Zone {
+  return {
+    // The backend has no zone IDs; the name is unique within one analysis and
+    // the index keeps the React key stable even if two names ever collide.
+    id: `${index}-${score.name}`,
+    name: score.name,
+    latitude: score.lat,
+    longitude: score.lng,
+    opportunityScore: score.opportunityScore,
+    demographicScore: score.demographicScore,
+    footfallScore: score.footfallPotentialScore,
+    competitionScore: score.competitionScore,
+    anchorScore: score.anchorScore,
+    population: score.population,
+    competitorCount: score.competitorCount,
+  };
+}
+
+function buildSummary(result: AnalyzeResponse): AnalysisSummary {
+  // The backend already returns zones best-first, but sorting here keeps the
+  // UI correct regardless of the order it receives.
+  const ranked = [...result.zones].sort(
     (a, b) => b.opportunityScore - a.opportunityScore
   );
 
-  const zones: ZoneAnalysis[] = ranked.map((zone, index) => ({
-    zone,
+  const zones: ZoneAnalysis[] = ranked.map((score, index) => ({
+    zone: toZone(score, index),
     rank: index + 1,
-    competitionLevel: getCompetitionLevel(zone.competitionScore),
-    trafficScore: zone.footfallScore,
-    populationEstimate: Math.round(zone.demographicScore * 1240),
-    tier: getOpportunityTier(zone.opportunityScore),
+    competitionLevel: getCompetitionLevel(score.competitionScore),
+    trafficScore: score.footfallPotentialScore,
+    populationEstimate: score.population,
+    tier: getOpportunityTier(score.opportunityScore),
   }));
 
   const topZone = zones[0];
 
-  const executiveSummary = `Based on analysis of ${zones.length} candidate zones, ${topZone.zone.name} presents the strongest opportunity with a score of ${topZone.zone.opportunityScore}/100 — driven by footfall of ${topZone.zone.footfallScore}/100 and a demographic fit of ${topZone.zone.demographicScore}/100.`;
-
   const recommendationReasons: string[] = [];
-  if (topZone.zone.footfallScore >= 80) {
+  if (topZone.zone.footfallScore >= 70) {
     recommendationReasons.push(
-      `High foot traffic (${topZone.zone.footfallScore}/100) indicates strong pedestrian demand near the site.`
+      `Strong footfall potential (${topZone.zone.footfallScore}/100) from the density of transit stops, schools, shops and eateries around the site.`
     );
   }
-  if (topZone.zone.demographicScore >= 80) {
+  if (topZone.zone.demographicScore >= 70) {
     recommendationReasons.push(
-      `Favorable demographic profile (${topZone.zone.demographicScore}/100) aligns with the target customer base.`
+      `Favorable demographic profile (${topZone.zone.demographicScore}/100) across population, purchasing power and age mix.`
     );
   }
-  if (topZone.zone.accessibilityScore >= 80) {
+  if (topZone.zone.anchorScore >= 70) {
     recommendationReasons.push(
-      `Strong accessibility (${topZone.zone.accessibilityScore}/100) via nearby transit and road connectivity.`
+      `Nearby anchor points (${topZone.zone.anchorScore}/100) should drive passive discovery.`
     );
   }
   if (topZone.competitionLevel === "Low") {
     recommendationReasons.push(
-      `Low competition density leaves room for early market share capture.`
+      `Only ${topZone.zone.competitorCount} direct competitors nearby, leaving room for early market share capture.`
     );
   }
   if (recommendationReasons.length === 0) {
     recommendationReasons.push(
-      `Highest combined opportunity score among all analyzed zones.`
+      `Highest combined opportunity score among all ${zones.length} analyzed zones.`
     );
   }
 
   const risks: string[] = [];
   if (topZone.competitionLevel === "High") {
     risks.push(
-      `High competition density may pressure pricing and customer acquisition.`
+      `High competition density (${topZone.zone.competitorCount} nearby competitors) may pressure pricing and customer acquisition.`
     );
   }
-  if (topZone.zone.accessibilityScore < 75) {
+  if (topZone.zone.footfallScore < 60) {
     risks.push(
-      `Moderate accessibility (${topZone.zone.accessibilityScore}/100) could limit reach for customers outside walking distance.`
+      `Moderate footfall potential (${topZone.zone.footfallScore}/100) may limit walk-in volume.`
     );
   }
   if (topZone.zone.anchorScore < 75) {
@@ -101,7 +121,7 @@ export function useAnalysis(): AnalysisSummary {
   }
 
   const suggestions = [
-    `Validate footfall estimates with an on-site visit before finalizing lease terms.`,
+    `Validate footfall potential with an on-site visit before finalizing lease terms — the score reflects nearby facility density, not observed pedestrian counts.`,
     `Negotiate flexible lease terms given ${topZone.competitionLevel.toLowerCase()} competition in the area.`,
     `Consider a phased or pop-up launch to validate demand ahead of full investment.`,
   ];
@@ -109,10 +129,26 @@ export function useAnalysis(): AnalysisSummary {
   return {
     zones,
     topZone,
-    agents: mockAgents,
-    executiveSummary,
+    executiveSummary: result.executiveSummary,
     recommendationReasons,
     risks,
     suggestions,
   };
+}
+
+/**
+ * Reads the analysis produced by the landing-page form. Returns null when the
+ * page is opened directly without one — the UI shows a prompt to run an
+ * analysis rather than inventing data to fill the screen.
+ */
+export function useAnalysis(): AnalysisSummary | null {
+  const [summary, setSummary] = useState<AnalysisSummary | null>(null);
+
+  // sessionStorage is unavailable during SSR, so the read happens after mount.
+  useEffect(() => {
+    const stored = loadStoredAnalysis();
+    if (stored) setSummary(buildSummary(stored));
+  }, []);
+
+  return summary;
 }

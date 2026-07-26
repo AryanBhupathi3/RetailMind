@@ -11,7 +11,9 @@
     "start:prod": "nitrostack-cli start",
     "upgrade": "nitrostack-cli upgrade",
     "install:all": "nitrostack-cli install",
-    "widget": "npm --prefix src/widgets"
+    "widget": "npm --prefix src/widgets",
+    "dev:api": "npx tsx src/dev-server.ts",
+    "dev:ui": "npm --prefix src/widgets run dev"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": ">=0.1.0",

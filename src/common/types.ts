@@ -34,6 +34,26 @@ export interface TrafficResult {
   footTraffic: number;
 }
 
+/**
+ * Per-zone scores for every candidate the analysis evaluated, not just the
+ * winner. The Opportunity Engine already computes these internally; exposing
+ * them lets a client rank, map and compare zones without re-deriving anything
+ * (and without inventing data to fill a UI).
+ */
+export interface ZoneScore {
+  name: string;
+  lat: number;
+  lng: number;
+  opportunityScore: number;
+  footfallPotentialScore: number;
+  demographicScore: number;
+  competitionScore: number;
+  anchorScore: number;
+  /** Real WorldPop catchment population — see DemographicsService. */
+  population: number;
+  competitorCount: number;
+}
+
 export interface AnalyzeOutput {
   opportunityScore: number;
   recommendedArea: string;
@@ -41,4 +61,6 @@ export interface AnalyzeOutput {
   competition: number;
   demographics: number;
   executiveSummary: string;
+  /** Every evaluated zone, best first. Additive — the fields above are unchanged. */
+  zones: ZoneScore[];
 }

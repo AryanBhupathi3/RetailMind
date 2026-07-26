@@ -1,3 +1,6 @@
+"use client";
+
+import Link from "next/link";
 import Header from "../components/Header";
 import ScoreCard from "../components/ScoreCard";
 import OpportunityCard from "../components/OpportunityCard";
@@ -6,6 +9,31 @@ import HeatMap from "../components/HeatMap";
 import { useAnalysis } from "../hooks/useAnalysis";
 
 export default function RetailAnalysis() {
+  const analysis = useAnalysis();
+
+  // Reached by opening /analysis directly, or after a page reload cleared the
+  // stored result. Showing a prompt is the honest response — there is no data
+  // to display and none may be invented.
+  if (!analysis) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md text-center">
+          <h2 className="text-2xl font-bold text-gray-900">No analysis yet</h2>
+          <p className="mt-3 text-gray-500">
+            Run an analysis from the home page to see a retail opportunity
+            report for your business.
+          </p>
+          <Link
+            href="/"
+            className="mt-6 inline-block rounded-xl bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-700"
+          >
+            Start an analysis
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   const {
     zones,
     topZone,
@@ -13,7 +41,7 @@ export default function RetailAnalysis() {
     recommendationReasons,
     risks,
     suggestions,
-  } = useAnalysis();
+  } = analysis;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -34,7 +62,7 @@ export default function RetailAnalysis() {
             <span className="font-semibold text-gray-900">
               {topZone.zone.name}
             </span>{" "}
-            — based on {zones.length} analyzed zones (mock data).
+            — based on {zones.length} analyzed zones.
           </p>
         </section>
 
@@ -45,9 +73,9 @@ export default function RetailAnalysis() {
             helperText={topZone.zone.name}
           />
           <ScoreCard
-            label="Traffic Score"
+            label="Footfall Potential"
             score={topZone.trafficScore}
-            helperText="Foot traffic index"
+            helperText="Derived accessibility index"
           />
           <ScoreCard
             label="Demographic Score"

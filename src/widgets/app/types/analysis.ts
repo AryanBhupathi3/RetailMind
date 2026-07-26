@@ -28,6 +28,9 @@ export interface Zone {
   demographicScore: number;
   footfallScore: number;
   competitionScore: number;
-  accessibilityScore: number;
   anchorScore: number;
+
+  /** Real WorldPop catchment population for the zone. */
+  population: number;
+  competitorCount: number;
 }

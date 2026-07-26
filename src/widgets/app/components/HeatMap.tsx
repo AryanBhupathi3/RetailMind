@@ -89,8 +89,8 @@ export default function HeatMap({ zones, topZoneId }: HeatMapProps) {
       </div>
 
       <p className="mt-3 text-center text-xs text-gray-400">
-        Illustrative placeholder — plots relative zone positions from mock
-        coordinates. No live map data.
+        Plots relative positions from real zone coordinates. Schematic layout —
+        not a to-scale map.
       </p>
     </div>
   );

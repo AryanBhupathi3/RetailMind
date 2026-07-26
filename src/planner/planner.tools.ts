@@ -12,13 +12,30 @@ const AnalyzeInputSchema = z.object({
   radius: z.number().describe('Search radius in kilometers'),
 });
 
+/** Scores for a single evaluated zone. Mirrors ZoneScore in common/types.ts. */
+const ZoneScoreSchema = z.object({
+  name: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  opportunityScore: z.number(),
+  footfallPotentialScore: z.number(),
+  demographicScore: z.number(),
+  competitionScore: z.number(),
+  anchorScore: z.number(),
+  population: z.number(),
+  competitorCount: z.number(),
+});
+
 const AnalyzeOutputSchema = z.object({
   opportunityScore: z.number(),
   recommendedArea: z.string(),
+  // Named "traffic" for backwards compatibility; the value is the Footfall
+  // Potential Score, not measured vehicle or pedestrian traffic.
   traffic: z.number(),
   competition: z.number(),
   demographics: z.number(),
   executiveSummary: z.string(),
+  zones: z.array(ZoneScoreSchema).describe('Every evaluated zone, best first'),
 });
 
 /**
