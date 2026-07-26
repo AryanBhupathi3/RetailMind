@@ -10,13 +10,13 @@ const GEOAPIFY_PLACES_URL = 'https://api.geoapify.com/v2/places';
 // plain population product (wpgppop) because a single request returns the
 // full age pyramid, from which BOTH population and the 18-35 share are
 // derived — halving the number of slow WorldPop calls per zone.
-const WORLDPOP_DATASET = 'wpgpas';
-const WORLDPOP_YEAR = '2020';
+export const WORLDPOP_DATASET = 'wpgpas';
+export const WORLDPOP_YEAR = '2020';
 
 // Catchment sampled around each zone centre. ~1.5km is a realistic local
 // catchment for a neighbourhood retail site, and matches the granularity of
 // the localities MapsService returns.
-const CATCHMENT_RADIUS_KM = 1.5;
+export const CATCHMENT_RADIUS_KM = 1.5;
 const CIRCLE_STEPS = 12;
 
 // WorldPop is slow (~6s/request, and the cost is fixed per request rather
@@ -39,7 +39,7 @@ const AFFLUENCE_FETCH_LIMIT = 100;
  * far more commercial pull than a single ATM. All category strings verified
  * against the live Geoapify API.
  */
-const AFFLUENCE_WEIGHTS: { category: string; weight: number }[] = [
+export const AFFLUENCE_WEIGHTS: { category: string; weight: number }[] = [
   { category: 'service.financial.bank', weight: 2 },
   { category: 'service.financial.atm', weight: 1 },
   { category: 'commercial.supermarket', weight: 3 },
@@ -52,10 +52,10 @@ const AFFLUENCE_WEIGHTS: { category: string; weight: number }[] = [
 // centre, so the index below is log-scaled — a linear scale calibrated to
 // small numbers saturates instantly in Indian metros and stops
 // differentiating zones at all.
-const AFFLUENCE_SATURATION = 500;
+export const AFFLUENCE_SATURATION = 500;
 // The Opportunity Engine scores income as `medianIncome / 2000`, so the
 // proxy is expressed on that same 0-2000 index to stay contract-compatible.
-const INCOME_INDEX_MAX = 2000;
+export const INCOME_INDEX_MAX = 2000;
 
 interface AgeSexRow {
   class: string;
@@ -105,7 +105,7 @@ function releaseWorldPopSlot(): void {
  * on distance from an anchor point has no boundary artefact, so all zones in
  * one city reliably share ONE request.
  */
-const CATCHMENT_REUSE_RADIUS_KM = 30;
+export const CATCHMENT_REUSE_RADIUS_KM = 30;
 
 interface CatchmentPopulation {
   population: number;

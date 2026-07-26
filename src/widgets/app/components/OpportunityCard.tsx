@@ -1,4 +1,4 @@
-import type { ZoneAnalysis } from "../hooks/useAnalysis";
+import { getCostLevel, type ZoneAnalysis } from "../hooks/useAnalysis";
 
 interface OpportunityCardProps {
   analysis: ZoneAnalysis;
@@ -60,6 +60,19 @@ export default function OpportunityCard({
           </dd>
         </div>
       </dl>
+
+      <div
+        className={`mt-4 flex items-center justify-between border-t pt-3 text-sm ${
+          highlighted ? "border-white/20" : "border-gray-100"
+        }`}
+      >
+        <span className={highlighted ? "text-white/70" : "text-gray-500"}>
+          Cost pressure
+        </span>
+        <span className="font-medium">
+          {getCostLevel(zone.costPressureIndex)} ({zone.costPressureIndex}/100)
+        </span>
+      </div>
     </div>
   );
 }

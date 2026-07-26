@@ -33,4 +33,8 @@ export interface Zone {
   /** Real WorldPop catchment population for the zone. */
   population: number;
   competitorCount: number;
+
+  /** Relative commercial cost pressure, 0-100 — derived, not a rent figure. */
+  costPressureIndex: number;
+  budgetFitScore: number;
 }

@@ -1,6 +1,7 @@
 import { McpApp, Module, ConfigModule } from '@nitrostack/core';
 import { HealthModule } from './health/health.module.js';
 import { PlannerModule } from './planner/planner.module.js';
+import { OpportunityModule } from './opportunity/opportunity.module.js';
 import { SystemHealthCheck } from './health/system.health.js';
 
 /**
@@ -24,7 +25,11 @@ import { SystemHealthCheck } from './health/system.health.js';
   imports: [
     ConfigModule.forRoot(),
     HealthModule,
-    PlannerModule
+    PlannerModule,
+    // Imported at the root as well as by PlannerModule: the framework collects
+    // controllers only one level deep, so the methodology resource would not be
+    // registered from its nested position inside PlannerModule.
+    OpportunityModule
   ],
   providers: [
     // Health Checks

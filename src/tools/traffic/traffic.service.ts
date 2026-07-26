@@ -7,7 +7,7 @@ const GEOAPIFY_PLACES_URL = 'https://api.geoapify.com/v2/places';
 // Sampled around each zone centre — a realistic walk-in catchment for a
 // neighbourhood retail site, and consistent with the radius the Places and
 // Demographics tools already use.
-const CATCHMENT_RADIUS_METERS = 1500;
+export const CATCHMENT_RADIUS_METERS = 1500;
 const REQUEST_TIMEOUT_MS = 10_000;
 // Well above the number of facilities a dense catchment returns, so counts
 // are not silently truncated by the page size (a limit of 100 was already
@@ -37,7 +37,7 @@ const RESULT_LIMIT = 500;
  * these categories the way the others combine. Its footfall contribution is
  * minor and not worth a second request.
  */
-const FOOTFALL_WEIGHTS: { category: string; weight: number }[] = [
+export const FOOTFALL_WEIGHTS: { category: string; weight: number }[] = [
   { category: 'public_transport', weight: 4 },
   { category: 'education', weight: 3 },
   { category: 'entertainment', weight: 3 },
@@ -55,10 +55,10 @@ const FOOTFALL_WEIGHTS: { category: string; weight: number }[] = [
  * zone bunched near zero. A logarithmic curve was rejected for the opposite
  * reason — it lifted a near-empty outskirt to roughly a third of full score.
  */
-const FOOTFALL_SATURATION = 1200;
+export const FOOTFALL_SATURATION = 1200;
 // The Opportunity Engine scores traffic as `footTraffic / 50000`, so the
 // index is expressed on that same scale to stay contract-compatible.
-const FOOT_TRAFFIC_MAX = 50_000;
+export const FOOT_TRAFFIC_MAX = 50_000;
 
 interface GeoapifyPlacesResponse {
   features?: { properties?: { categories?: string[] } }[];

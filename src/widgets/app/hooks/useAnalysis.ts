@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadStoredAnalysis, type AnalyzeResponse, type ZoneScore } from "../lib/api";
+import { useWidgetSDK } from "@nitrostack/widgets";
+import {
+  isAnalyzeResponse,
+  loadStoredAnalysis,
+  type AnalyzeResponse,
+  type ZoneScore,
+} from "../lib/api";
 import type { Zone } from "../types/analysis";
 
 export type CompetitionLevel = "Low" | "Medium" | "High";
@@ -23,6 +29,8 @@ export interface AnalysisSummary {
   recommendationReasons: string[];
   risks: string[];
   suggestions: string[];
+  /** Shown verbatim so the budget assumption is never hidden from the reader. */
+  budgetAssumption: string;
 }
 
 function getCompetitionLevel(competitionScore: number): CompetitionLevel {
@@ -52,7 +60,17 @@ function toZone(score: ZoneScore, index: number): Zone {
     anchorScore: score.anchorScore,
     population: score.population,
     competitorCount: score.competitorCount,
+    costPressureIndex: score.costPressureIndex,
+    budgetFitScore: score.budgetFitScore,
   };
+}
+
+export type CostLevel = "Low" | "Moderate" | "High";
+
+export function getCostLevel(costPressureIndex: number): CostLevel {
+  if (costPressureIndex >= 70) return "High";
+  if (costPressureIndex >= 45) return "Moderate";
+  return "Low";
 }
 
 function buildSummary(result: AnalyzeResponse): AnalysisSummary {
@@ -94,6 +112,13 @@ function buildSummary(result: AnalyzeResponse): AnalysisSummary {
       `Only ${topZone.zone.competitorCount} direct competitors nearby, leaving room for early market share capture.`
     );
   }
+  if (topZone.zone.budgetFitScore >= 90) {
+    recommendationReasons.push(
+      `Cost pressure is ${getCostLevel(
+        topZone.zone.costPressureIndex
+      ).toLowerCase()} (${topZone.zone.costPressureIndex}/100) and sits within the budget you specified.`
+    );
+  }
   if (recommendationReasons.length === 0) {
     recommendationReasons.push(
       `Highest combined opportunity score among all ${zones.length} analyzed zones.`
@@ -116,6 +141,13 @@ function buildSummary(result: AnalyzeResponse): AnalysisSummary {
       `Fewer nearby anchor points (${topZone.zone.anchorScore}/100) may reduce passive discovery.`
     );
   }
+  if (topZone.zone.budgetFitScore < 90) {
+    risks.push(
+      `Cost pressure here is ${getCostLevel(
+        topZone.zone.costPressureIndex
+      ).toLowerCase()} (${topZone.zone.costPressureIndex}/100) relative to your budget — confirm actual rents before committing.`
+    );
+  }
   if (risks.length === 0) {
     risks.push(`No major risk factors identified in the current data set.`);
   }
@@ -133,22 +165,86 @@ function buildSummary(result: AnalyzeResponse): AnalysisSummary {
     recommendationReasons,
     risks,
     suggestions,
+    budgetAssumption: result.budgetAssumption,
   };
 }
 
 /**
- * Reads the analysis produced by the landing-page form. Returns null when the
- * page is opened directly without one — the UI shows a prompt to run an
- * analysis rather than inventing data to fill the screen.
+ * Supplies the analysis to render, from whichever source is actually present:
+ *
+ *   1. `toolOutput` — when hosted as an MCP widget, the host (NitroStudio,
+ *      ChatGPT) exposes the `analyze` result through the widget SDK. The CLI
+ *      widget bundle reads the same `window.openai.toolOutput`, so this one
+ *      path covers both.
+ *   2. sessionStorage — the standalone browser flow, where the landing-page
+ *      form called the dev bridge directly.
+ *
+ * Returns null when neither holds a complete result, so the UI can show a
+ * prompt rather than inventing data to fill the screen.
  */
-export function useAnalysis(): AnalysisSummary | null {
-  const [summary, setSummary] = useState<AnalysisSummary | null>(null);
+/**
+ * Pulls the tool output straight off the host globals.
+ *
+ * Hosts differ: the OpenAI Apps SDK exposes `window.openai.toolOutput`, the
+ * MCP Apps spec uses `window.__MCP_APP_CONTEXT__`, and some hosts populate
+ * either one AFTER the widget first paints. Reading both directly, on a short
+ * poll, is what makes this work across NitroStudio and ChatGPT rather than
+ * only where the SDK hook happens to fire.
+ */
+function readHostToolOutput(): unknown {
+  if (typeof window === "undefined") return null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any;
+
+  return (
+    w.openai?.toolOutput ??
+    w.__MCP_APP_CONTEXT__?.toolOutput ??
+    w.__MCP_APP_CONTEXT__?.output ??
+    null
+  );
+}
+
+export function useAnalysis(propData?: unknown): AnalysisSummary | null {
+  const { toolOutput } = useWidgetSDK();
+  const [stored, setStored] = useState<AnalyzeResponse | null>(null);
+  const [hostOutput, setHostOutput] = useState<AnalyzeResponse | null>(null);
 
   // sessionStorage is unavailable during SSR, so the read happens after mount.
   useEffect(() => {
-    const stored = loadStoredAnalysis();
-    if (stored) setSummary(buildSummary(stored));
+    setStored(loadStoredAnalysis());
   }, []);
 
-  return summary;
+  // Poll briefly for host globals, because several hosts attach the tool
+  // output a tick or two after the widget mounts. Stops as soon as a complete
+  // result appears, and gives up after ~3s rather than polling forever.
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+
+    const check = () => {
+      if (cancelled) return;
+      const candidate = readHostToolOutput();
+      if (isAnalyzeResponse(candidate)) {
+        setHostOutput(candidate);
+        return;
+      }
+      if (++attempts < 20) setTimeout(check, 150);
+    };
+
+    check();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Priority: the prop the widget bundle injected, then whatever the SDK or
+  // the host globals expose, and only then the standalone browser flow.
+  const source = isAnalyzeResponse(propData)
+    ? propData
+    : isAnalyzeResponse(toolOutput)
+      ? toolOutput
+      : (hostOutput ?? stored);
+
+  return source ? buildSummary(source) : null;
 }

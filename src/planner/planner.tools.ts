@@ -1,4 +1,4 @@
-import { ToolDecorator as Tool, Injectable, z, ExecutionContext } from '@nitrostack/core';
+import { ToolDecorator as Tool, Widget, Injectable, z, ExecutionContext } from '@nitrostack/core';
 import { MapsService } from '../tools/maps/maps.service.js';
 import { PlacesService } from '../tools/places/places.service.js';
 import { DemographicsService } from '../tools/demographics/demographics.service.js';
@@ -24,6 +24,8 @@ const ZoneScoreSchema = z.object({
   anchorScore: z.number(),
   population: z.number(),
   competitorCount: z.number(),
+  costPressureIndex: z.number(),
+  budgetFitScore: z.number(),
 });
 
 const AnalyzeOutputSchema = z.object({
@@ -36,6 +38,9 @@ const AnalyzeOutputSchema = z.object({
   demographics: z.number(),
   executiveSummary: z.string(),
   zones: z.array(ZoneScoreSchema).describe('Every evaluated zone, best first'),
+  budgetAssumption: z
+    .string()
+    .describe('States the budget assumption applied, and that it is not measured rent data'),
 });
 
 /**
@@ -72,6 +77,13 @@ export class PlannerTools {
     inputSchema: AnalyzeInputSchema,
     outputSchema: AnalyzeOutputSchema,
   })
+  // Renders the RetailMind dashboard (heatmap, zone cards, report) in place of
+  // raw JSON in MCP hosts that support widgets. The route maps to the Next.js
+  // /analysis page, bundled by the CLI into src/widgets/out/analysis.html.
+  // Route is deliberately bare, with no leading slash: it is resolved with
+  // path.resolve(widgetsDir, 'out', route), and a leading slash would be
+  // treated as an absolute path and escape the project directory.
+  @Widget({ route: 'analysis', prefersBorder: true })
   async analyze(input: z.infer<typeof AnalyzeInputSchema>, ctx: ExecutionContext) {
     // TEMPORARY DIAGNOSTICS (stage tracing).
     // Deliberately uses ctx.logger, not console.error: only the framework

@@ -8,8 +8,8 @@ import ReportCard from "../components/ReportCard";
 import HeatMap from "../components/HeatMap";
 import { useAnalysis } from "../hooks/useAnalysis";
 
-export default function RetailAnalysis() {
-  const analysis = useAnalysis();
+export default function RetailAnalysis({ data }: { data?: unknown }) {
+  const analysis = useAnalysis(data);
 
   // Reached by opening /analysis directly, or after a page reload cleared the
   // stored result. Showing a prompt is the honest response — there is no data
@@ -41,6 +41,7 @@ export default function RetailAnalysis() {
     recommendationReasons,
     risks,
     suggestions,
+    budgetAssumption,
   } = analysis;
 
   return (
@@ -106,6 +107,19 @@ export default function RetailAnalysis() {
                 highlighted={zoneAnalysis.zone.id === topZone.zone.id}
               />
             ))}
+          </div>
+        </section>
+
+        {/* The budget assumption is stated in full, next to the results it
+            influenced, so it can never read as measured rent data. */}
+        <section className="mt-8">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <p className="text-sm font-semibold text-amber-900">
+              How budget was applied
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-amber-800">
+              {budgetAssumption}
+            </p>
           </div>
         </section>
 

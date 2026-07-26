@@ -52,6 +52,13 @@ export interface ZoneScore {
   /** Real WorldPop catchment population — see DemographicsService. */
   population: number;
   competitorCount: number;
+  /**
+   * Relative commercial cost pressure, 0-100. Derived from real measured
+   * signals (affluence density and footfall). NOT a rent figure.
+   */
+  costPressureIndex: number;
+  /** How well the zone's cost pressure fits the stated budget, 0-100. */
+  budgetFitScore: number;
 }
 
 export interface AnalyzeOutput {
@@ -63,4 +70,9 @@ export interface AnalyzeOutput {
   executiveSummary: string;
   /** Every evaluated zone, best first. Additive — the fields above are unchanged. */
   zones: ZoneScore[];
+  /**
+   * Plain-language statement of the budget assumption applied, so a reader is
+   * never left thinking the budget was matched against real rent data.
+   */
+  budgetAssumption: string;
 }

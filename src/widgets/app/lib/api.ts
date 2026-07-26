@@ -22,6 +22,9 @@ export interface ZoneScore {
   anchorScore: number;
   population: number;
   competitorCount: number;
+  /** Relative commercial cost pressure, 0-100 — derived, not a rent figure. */
+  costPressureIndex: number;
+  budgetFitScore: number;
 }
 
 /** Mirrors AnalyzeOutput in src/common/types.ts. */
@@ -34,6 +37,8 @@ export interface AnalyzeResponse {
   demographics: number;
   executiveSummary: string;
   zones: ZoneScore[];
+  /** States the budget assumption applied, and that it is not measured rent data. */
+  budgetAssumption: string;
 }
 
 export interface AnalyzeRequest {
@@ -82,7 +87,31 @@ export function storeAnalysis(result: AnalyzeResponse): void {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(result));
 }
 
-/** Returns null when the page is opened without a preceding analysis. */
+/**
+ * Whether a value is a complete analysis result for the CURRENT output shape.
+ *
+ * Used for both the MCP host's tool output and anything restored from session
+ * storage. A payload from an older build can be missing fields the report now
+ * shows (budget assumption, cost pressure); rendering it would silently
+ * produce a half-empty report that still looks like a real one.
+ */
+export function isAnalyzeResponse(value: unknown): value is AnalyzeResponse {
+  const candidate = value as AnalyzeResponse | null | undefined;
+
+  return (
+    typeof candidate?.recommendedArea === "string" &&
+    typeof candidate?.budgetAssumption === "string" &&
+    Array.isArray(candidate?.zones) &&
+    candidate.zones.length > 0 &&
+    typeof candidate.zones[0]?.costPressureIndex === "number"
+  );
+}
+
+/**
+ * Returns null when the page is opened without a preceding analysis, or when
+ * the stored result predates the current output shape (in which case the
+ * stale entry is cleared so it cannot resurface).
+ */
 export function loadStoredAnalysis(): AnalyzeResponse | null {
   if (typeof window === "undefined") return null;
 
@@ -90,8 +119,14 @@ export function loadStoredAnalysis(): AnalyzeResponse | null {
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as AnalyzeResponse;
+    const parsed = JSON.parse(raw);
+    if (!isAnalyzeResponse(parsed)) {
+      sessionStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
+    sessionStorage.removeItem(STORAGE_KEY);
     return null;
   }
 }

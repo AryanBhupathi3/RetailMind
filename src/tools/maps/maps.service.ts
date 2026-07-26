@@ -7,7 +7,11 @@ const GEOAPIFY_GEOCODE_URL = 'https://api.geoapify.com/v1/geocode/search';
 const GEOAPIFY_PLACES_URL = 'https://api.geoapify.com/v2/places';
 
 const REQUEST_TIMEOUT_MS = 10_000;
-const MAX_CANDIDATE_ZONES = 8;
+// Six, not eight: each zone costs a Places call and a Traffic call, and dense
+// metros (Mumbai, Pune) were landing at 9-11s — right on the edge of the MCP
+// client's request timeout, which surfaces as an opaque "Tool execution
+// failed". Six keeps the spread across the search area while leaving headroom.
+const MAX_CANDIDATE_ZONES = 6;
 // How many raw localities to pull before de-duplicating, distance-filtering
 // and selecting MAX_CANDIDATE_ZONES. Must be well above MAX_CANDIDATE_ZONES:
 // the API returns results in its own order, so a small limit silently

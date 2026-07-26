@@ -15,11 +15,11 @@ export interface ZoneToolOutputs {
   traffic: TrafficResult;
 }
 
-const MAX_FOOTFALL_POTENTIAL = 50000;
-const MAX_POPULATION = 100000;
-const MAX_PURCHASING_POWER = 2000;
-const MAX_COMPETITORS = 12;
-const MAX_ANCHORS = 5;
+export const MAX_FOOTFALL_POTENTIAL = 50000;
+export const MAX_POPULATION = 100000;
+export const MAX_PURCHASING_POWER = 2000;
+export const MAX_COMPETITORS = 12;
+export const MAX_ANCHORS = 5;
 
 /**
  * Age-concentration normalization band.
@@ -44,21 +44,75 @@ const MAX_ANCHORS = 5;
  * 0-100. Simple, transparent, and auditable — the anchors are OUR OWN
  * judgement, stated here so they can be retuned, not fitted or learned.
  */
-const AGE_FLOOR_PCT = 25;
-const AGE_CEILING_PCT = 40;
+export const AGE_FLOOR_PCT = 25;
+export const AGE_CEILING_PCT = 40;
+
+/**
+ * COST PRESSURE — relative, derived, and NOT a rent figure.
+ *
+ * There is no free, reliable locality-level rent data for Indian
+ * neighbourhoods, so this does not attempt to state what a zone costs. It
+ * blends two signals we already measure, both of which genuinely track
+ * commercial rent:
+ *
+ *   purchasing power (0.6) — density of banks, ATMs, supermarkets and malls;
+ *                            the strongest available affluence marker, and
+ *                            affluent catchments command higher rents.
+ *   footfall potential (0.4) — how prime the retail pitch is; prime pitches
+ *                            cost more than quiet ones.
+ *
+ * Both are already computed per zone, so this adds no API calls and no
+ * latency. The weighting is our judgement, stated here to be retuned.
+ */
+export const COST_PRESSURE_WEIGHTS = { purchasingPower: 0.6, footfall: 0.4 } as const;
+
+/**
+ * BUDGET BANDS — THE WEAKEST LINK IN THIS ENGINE. READ BEFORE TRUSTING.
+ *
+ * Every other number in RetailMind is either measured or derived from
+ * measurements. These four thresholds are NOT. They are our judgement about
+ * what an Indian retail budget can reach, and they are not backed by rent
+ * data, because no free source for it exists at this granularity.
+ *
+ * They are deliberately isolated in this one block, reported to the caller via
+ * AnalyzeOutput.budgetAssumption, and should be replaced with real figures (or
+ * the operator's own market knowledge) the moment either is available.
+ *
+ * Each band maps a budget to the highest cost pressure it can comfortably
+ * carry. A zone above that ceiling is not excluded — it is penalised in
+ * proportion to how far past the ceiling it sits.
+ */
+export const BUDGET_BANDS: { maxBudget: number; costCeiling: number }[] = [
+  { maxBudget: 300_000, costCeiling: 40 },
+  { maxBudget: 1_000_000, costCeiling: 65 },
+  { maxBudget: 2_500_000, costCeiling: 85 },
+  { maxBudget: Infinity, costCeiling: 100 },
+];
+
+/**
+ * How far above its ceiling a zone can sit before budget fit reaches zero.
+ * A soft slope rather than a hard cut-off, because the ceilings themselves are
+ * assumptions — a cliff edge would give them more authority than they deserve.
+ */
+export const BUDGET_OVERRUN_TOLERANCE = 30;
 
 /**
  * Opportunity Score weights. These MUST sum to 1.0, otherwise the score can
  * never reach 100 and the "/100" reported to the user is a lie. The sum is
  * asserted at module load below so the invariant cannot silently regress.
+ *
+ * budgetFit carries the smallest weight of any major component on purpose: it
+ * rests on the assumed bands above rather than on measurement, so it should
+ * shift a ranking without ever dominating one.
  */
-const WEIGHTS = {
-  footfallPotential: 0.3,
-  population: 0.2,
-  purchasingPower: 0.15,
-  ageProfile: 0.1,
-  competition: 0.2,
+export const WEIGHTS = {
+  footfallPotential: 0.25,
+  population: 0.18,
+  purchasingPower: 0.13,
+  ageProfile: 0.09,
+  competition: 0.18,
   anchors: 0.05,
+  budgetFit: 0.12,
 } as const;
 
 const WEIGHT_SUM = Object.values(WEIGHTS).reduce((a, b) => a + b, 0);
@@ -79,6 +133,40 @@ const DEMOGRAPHIC_WEIGHT_SUM =
 
 function clampScore(value: number): number {
   return Math.min(100, Math.max(0, value));
+}
+
+/**
+ * Highest cost pressure the given budget is assumed to carry. A missing,
+ * zero, negative or non-finite budget is treated as unconstrained rather than
+ * as an error, so callers that omit it keep working exactly as before.
+ */
+function costCeilingForBudget(budget: number): number {
+  if (!Number.isFinite(budget) || budget <= 0) return 100;
+  return BUDGET_BANDS.find((band) => budget <= band.maxBudget)!.costCeiling;
+}
+
+/**
+ * 100 while the zone sits within the affordable ceiling, then falling away
+ * linearly across BUDGET_OVERRUN_TOLERANCE points of overrun.
+ */
+function budgetFitFor(costPressure: number, ceiling: number): number {
+  if (costPressure <= ceiling) return 100;
+  return clampScore(
+    100 - ((costPressure - ceiling) / BUDGET_OVERRUN_TOLERANCE) * 100
+  );
+}
+
+function describeBudgetAssumption(budget: number): string {
+  if (!Number.isFinite(budget) || budget <= 0) {
+    return 'No budget supplied, so budget fit was scored as unconstrained for every zone.';
+  }
+  return (
+    `Budget of ₹${budget.toLocaleString('en-IN')} was matched against a cost pressure ceiling of ` +
+    `${costCeilingForBudget(budget)}/100. Cost pressure is derived from real affluence and ` +
+    `footfall signals, but the budget-to-ceiling bands are an ASSUMPTION, not measured rent ` +
+    `data — no free locality-level rent source exists for Indian neighbourhoods. Treat budget ` +
+    `fit as directional guidance and verify actual rents on the ground.`
+  );
 }
 
 /**
@@ -117,6 +205,10 @@ export class OpportunityEngineService {
       );
     }
 
+    // Budget is a property of the search, not of any one zone, so the ceiling
+    // is resolved once and applied to every candidate.
+    const costCeiling = costCeilingForBudget(input.budget);
+
     const evaluations = zoneOutputs.map(
       ({ zone, places, demographics, traffic }) => {
 
@@ -151,6 +243,15 @@ export class OpportunityEngineService {
           (places.anchorPoints.length / MAX_ANCHORS) * 100
         );
 
+        // Relative cost pressure from signals already measured above — no
+        // extra lookups, and no claim about what the zone actually costs.
+        const costPressureIndex = clampScore(
+          COST_PRESSURE_WEIGHTS.purchasingPower * purchasingPowerScore +
+            COST_PRESSURE_WEIGHTS.footfall * footfallPotentialScore
+        );
+
+        const budgetFitScore = budgetFitFor(costPressureIndex, costCeiling);
+
         // The demographic figure shown to the user combines exactly the three
         // demographic components the Opportunity Score uses, in exactly the
         // proportion they carry there — so it explains the ranking instead of
@@ -168,7 +269,8 @@ export class OpportunityEngineService {
           WEIGHTS.purchasingPower * purchasingPowerScore +
           WEIGHTS.ageProfile * ageProfileScore +
           WEIGHTS.competition * competitionScore +
-          WEIGHTS.anchors * anchorScore;
+          WEIGHTS.anchors * anchorScore +
+          WEIGHTS.budgetFit * budgetFitScore;
 
         return {
           zone: zone.name,
@@ -184,6 +286,8 @@ export class OpportunityEngineService {
           anchorScore: Math.round(anchorScore),
           population: demographics.population,
           competitorCount: places.competitorCount,
+          costPressureIndex: Math.round(costPressureIndex),
+          budgetFitScore: Math.round(budgetFitScore),
         };
       }
     );
@@ -198,7 +302,9 @@ export class OpportunityEngineService {
       `[opportunity] winner="${top.zone}" footfallPotential=${top.footfallPotentialScore} ` +
         `population=${top.populationScore} purchasingPower=${top.purchasingPowerScore} ` +
         `ageProfile=${top.ageProfileScore} competition=${top.competitionScore} ` +
-        `anchors=${top.anchorScore} => opportunity=${top.opportunityScore}`
+        `anchors=${top.anchorScore} costPressure=${top.costPressureIndex} ` +
+        `budgetFit=${top.budgetFitScore} (ceiling=${costCeiling}) ` +
+        `=> opportunity=${top.opportunityScore}`
     );
 
     const executiveSummary =
@@ -234,7 +340,11 @@ export class OpportunityEngineService {
         anchorScore: e.anchorScore,
         population: e.population,
         competitorCount: e.competitorCount,
+        costPressureIndex: e.costPressureIndex,
+        budgetFitScore: e.budgetFitScore,
       })),
+
+      budgetAssumption: describeBudgetAssumption(input.budget),
     };
   }
 }
