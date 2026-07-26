@@ -24,9 +24,15 @@ export interface PlacesResult {
 
 export interface DemographicsResult {
   zone: string;
-  population: number;
+  /**
+   * Null when WorldPop is unreachable. The value is never estimated or
+   * substituted — an absent measurement is reported as absent.
+   */
+  population: number | null;
+  /** Purchasing Power Proxy (Geoapify-derived), NOT measured income. */
   medianIncome: number;
-  age18to35Pct: number;
+  /** Null when WorldPop is unreachable, on the same basis as `population`. */
+  age18to35Pct: number | null;
 }
 
 export interface TrafficResult {
@@ -49,8 +55,11 @@ export interface ZoneScore {
   demographicScore: number;
   competitionScore: number;
   anchorScore: number;
-  /** Real WorldPop catchment population — see DemographicsService. */
-  population: number;
+  /**
+   * Real WorldPop catchment population, or null when WorldPop is unreachable.
+   * Never estimated — see DemographicsService.
+   */
+  population: number | null;
   competitorCount: number;
   /**
    * Relative commercial cost pressure, 0-100. Derived from real measured
@@ -75,4 +84,10 @@ export interface AnalyzeOutput {
    * never left thinking the budget was matched against real rent data.
    */
   budgetAssumption: string;
+  /**
+   * Set when a data source was unavailable and the score was computed without
+   * it. Null on a fully-measured analysis. Surfaced so degraded results are
+   * never mistaken for complete ones.
+   */
+  dataAvailabilityNote: string | null;
 }

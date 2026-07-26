@@ -18,7 +18,8 @@ export interface ZoneAnalysis {
   rank: number;
   competitionLevel: CompetitionLevel;
   trafficScore: number;
-  populationEstimate: number;
+  /** Null when WorldPop was unavailable; the UI shows "Unavailable". */
+  populationEstimate: number | null;
   tier: OpportunityTier;
 }
 
@@ -31,6 +32,8 @@ export interface AnalysisSummary {
   suggestions: string[];
   /** Shown verbatim so the budget assumption is never hidden from the reader. */
   budgetAssumption: string;
+  /** Shown verbatim when a data source was unavailable. Null otherwise. */
+  dataAvailabilityNote: string | null;
 }
 
 function getCompetitionLevel(competitionScore: number): CompetitionLevel {
@@ -166,6 +169,7 @@ function buildSummary(result: AnalyzeResponse): AnalysisSummary {
     risks,
     suggestions,
     budgetAssumption: result.budgetAssumption,
+    dataAvailabilityNote: result.dataAvailabilityNote ?? null,
   };
 }
 

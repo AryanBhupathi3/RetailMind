@@ -84,7 +84,9 @@ export default function OpportunityCard({
             // the population of this zone specifically, which it is not.
             title="Measured population of the wider city catchment, shared across all zones in this analysis"
           >
-            {populationEstimate.toLocaleString()}
+            {populationEstimate === null
+              ? "Unavailable"
+              : populationEstimate.toLocaleString()}
           </dd>
         </div>
       </dl>

@@ -1,124 +1,81 @@
-<div align="center">
+# 🧠 RetailMind — AI-Powered Retail Location Intelligence
 
-# 🧠 RetailMind
+> Enter a business type, city, budget & radius — get a ranked, explainable answer to *where* to open your next outlet.
 
-### **AI-Powered Retail Location Intelligence**
+![Model Context Protocol](https://img.shields.io/badge/Model%20Context%20Protocol-MCP-blue) ![Built with Nitrostack](https://img.shields.io/badge/Built%20with-Nitrostack-0A66FF) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![Architecture](https://img.shields.io/badge/architecture-multi--agent-blueviolet) ![Status](https://img.shields.io/badge/status-live-brightgreen)
 
-*Discover • Analyze • Compare • Decide*
+**RetailMind — AI-Powered Retail Location Intelligence** is an [MCP (Model Context Protocol)](https://nitrostack.ai) server that extends AI assistants — like Claude, Cursor, and any MCP-compatible client — with new, real-world capabilities. It is built and deployed on [Nitrostack](https://nitrostack.ai), the fastest way to build, deploy, and share MCP apps.
 
-**From business requirements to location decisions — powered by real-world data and modular location intelligence.**
+## Table of Contents
 
-<br>
+- [Overview](#overview)
+- [What is MCP?](#what-is-mcp)
+- [Problem Statement](#problem-statement)
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Intelligence Components](#intelligence-components)
+- [Opportunity Scoring Model](#opportunity-scoring-model)
+- [MCP Tools](#mcp-tools)
+- [Inputs & Outputs](#inputs--outputs)
+- [Data Sources & Transparency](#data-sources--transparency)
+- [End-to-End Workflow](#end-to-end-workflow)
+- [Getting Started](#getting-started)
+- [Connect to an MCP Client](#connect-to-an-mcp-client)
+- [Project Status](#project-status)
+- [Tech Stack](#tech-stack)
+- [Deploy Your Own MCP App](#deploy-your-own-mcp-app)
+- [Explore More MCP Apps](#explore-more-mcp-apps)
+- [FAQ](#faq)
+- [Keywords](#keywords)
+- [License](#license)
 
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![MCP](https://img.shields.io/badge/Model_Context_Protocol-000000?style=for-the-badge&logo=anthropic&logoColor=white)
-![NitroStack](https://img.shields.io/badge/NitroStack-FF6B35?style=for-the-badge&logo=lightning&logoColor=white)
-![Geoapify](https://img.shields.io/badge/Geoapify-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
-![WorldPop](https://img.shields.io/badge/WorldPop-2E8B57?style=for-the-badge&logo=openstreetmap&logoColor=white)
+## Overview
 
-![Status](https://img.shields.io/badge/status-complete-success?style=flat-square)
-![Architecture](https://img.shields.io/badge/architecture-multi--agent-blueviolet?style=flat-square)
-![Score](https://img.shields.io/badge/opportunity_score-0--100-orange?style=flat-square)
+AI-powered retail location intelligence. Enter business type, city, budget & radius — RetailMind analyzes competitors, demographics, and footfall potential across candidate zones via an MCP multi-agent architecture, then ranks them with an explainable 0–100 Opportunity Score. Built with TypeScript, NitroStack, Geoapify & WorldPop.
 
-</div>
-
----
-
-## 📖 Overview
-
-**RetailMind** is an AI-powered retail location intelligence system that helps businesses identify promising locations for opening a new retail outlet.
-
-The user provides four simple inputs — **business type, city, investment budget, and search radius**. RetailMind then analyzes multiple candidate locations using real-world and derived data covering nearby competitors, demographics, footfall potential, accessibility, population, and purchasing power.
-
-Built on an **MCP-based modular architecture**, four specialized components — **Maps, Places, Demographics, and Traffic** — collect and process different layers of location intelligence. An **Opportunity Engine** then fuses these signals through a weighted scoring model to rank every candidate zone.
-
-The result: an **Opportunity Score**, a **recommended location**, **ranked alternatives**, an **interactive opportunity map**, **demographic & competition insights**, and an **executive summary** that explains *why* a location wins.
-
-<div align="center">
+The system decomposes location intelligence into four specialized MCP components — **Maps, Places, Demographics, and Traffic** — coordinated by an MCP-based Planner. Their outputs feed an **Opportunity Engine** that applies a weighted scoring model, ranks every candidate zone, and produces a recommendation with an interactive map and executive summary.
 
 > ### 🎯 RetailMind doesn't just answer *"Which location should I choose?"*
 > ### It answers *"**Why** is this location better than the alternatives?"*
 
-</div>
+## What is MCP?
 
----
+The **Model Context Protocol (MCP)** is an open standard that lets AI assistants securely connect to external tools, data sources, and services. Instead of being limited to what it was trained on, an AI model can call **MCP servers** to fetch live data, run actions, and integrate with real systems.
 
-## 📑 Table of Contents
+This project is one such MCP server. Learn more about building and shipping MCP apps at [nitrostack.ai](https://nitrostack.ai).
 
-| | | |
-|---|---|---|
-| [✨ Key Highlights](#-key-highlights) | [🎯 Problem Statement](#-problem-statement) | [💡 Our Solution](#-our-solution--retailmind) |
-| [🏗️ System Architecture](#️-system-architecture) | [🤖 Intelligence Components](#-intelligence-components) | [⚙️ Opportunity Engine](#️-opportunity-engine) |
-| [🧠 Scoring Model](#-opportunity-scoring-model) | [🔌 MCP Capabilities](#-mcp-capabilities) | [🧰 MCP Tools](#-mcp-tools) |
-| [📥 Inputs](#-user-inputs) | [📤 Outputs](#-retailmind-outputs) | [🌐 Data Sources](#-data-sources) |
-| [🔄 Workflow](#-end-to-end-workflow) | [📌 Project Status](#-project-status) | [🛠️ Tech Stack](#️-technology--services) |
+## Problem Statement
 
----
+Retail businesses struggle to select the right location because there is no **unified, data-driven approach** for evaluating potential areas.
 
-## ✨ Key Highlights
+| ❌ The Challenge | ✅ What RetailMind Does |
+|---|---|
+| 📍 Difficulty identifying suitable locations | Discovers real candidate zones from geographic data |
+| 🏪 Unclear competitor presence | Maps competitors and commercial anchor points |
+| 👥 Limited demographic insights | Analyzes population, age profile, purchasing power |
+| 🚶 Uncertainty about footfall potential | Derives a footfall score from real accessibility signals |
+| 📊 Hard to compare multiple locations | Ranks all zones on one 0–100 scale |
+| 💡 Heavy reliance on intuition | Explains *why* each zone scored the way it did |
 
-| | Feature | Description |
-|:--:|---|---|
-| 🤖 | **AI-Powered Location Intelligence** | Identifies promising locations for launching a retail business. |
-| 📍 | **Real Location Analysis** | Discovers and evaluates actual candidate areas using geographic data. |
-| 🏪 | **Competitor Analysis** | Surfaces nearby competitors and important anchor locations. |
-| 👥 | **Demographic Insights** | Factors in population, age profile, and purchasing-power indicators. |
-| 🚶 | **Footfall Potential Analysis** | Estimates activity from real nearby facilities, transport, commerce, and education signals. |
-| 💰 | **Budget-Aware Insights** | Pairs the user's investment budget with a derived cost-pressure indicator. |
-| 🧠 | **Opportunity Scoring Engine** | Fuses multiple factors into a single **0–100 Opportunity Score**. |
-| 🏆 | **Ranking & Recommendation** | Compares candidate zones and recommends the strongest opportunity. |
-| 🗺️ | **Interactive Opportunity Map** | Visualizes analyzed locations using real geographic coordinates. |
-| 📊 | **Decision-Support Report** | Delivers ranked alternatives, risks, suggestions, and an executive summary. |
-| 🔌 | **MCP-Based Modular Architecture** | Keeps Maps, Places, Demographics, Traffic, and Scoring independent and extensible. |
+## Features
 
----
+- 🔌 **MCP-native** — works with any MCP-compatible client (Claude, Cursor, and more)
+- 🛠️ **Tools, resources & prompts** — exposes structured capabilities to AI agents
+- 🗺️ **Real location discovery** — finds actual candidate retail zones with real coordinates
+- 🏪 **Competitor & anchor analysis** — evaluates the commercial environment around each zone
+- 👥 **Demographic intelligence** — population, 18–35 age profile, purchasing-power proxy
+- 🚶 **Footfall potential scoring** — derived from transport, education, commerce, dining, entertainment & healthcare signals
+- 💰 **Budget-aware insights** — pairs investment budget with a derived cost-pressure indicator
+- 🧠 **Explainable Opportunity Score** — a transparent 0–100 weighted model, not a black box
+- 🏆 **Ranked recommendations** — best zone plus scored alternatives
+- 📊 **Decision-support report** — risks, suggestions, and an executive summary
+- ⚡ **Deployed on Nitrostack** — reliable, hosted, and instantly shareable
+- 🔐 **Secure by design** — secrets stay in environment variables, never in code
+- 🧩 **Composable** — combine with other MCP apps to build powerful AI workflows
 
-## 🎯 Problem Statement
+## System Architecture
 
-Retail businesses often struggle to select the right location because there is no **unified, data-driven approach** for evaluating potential areas.
-
-<table>
-<tr><td width="50%" valign="top">
-
-**🔴 Key Challenges**
-
-- 📍 Difficulty identifying suitable locations
-- 🏪 Unclear competitor presence
-- 👥 Limited demographic insights
-- 🚶 Uncertainty about footfall potential
-- 📊 Hard to compare multiple locations
-- 💡 Heavy reliance on intuition over data
-
-</td><td width="50%" valign="top">
-
-**🟢 What's Needed**
-
-An intelligent system that analyzes all these factors together and recommends the most promising retail location — backed by an **explainable Opportunity Score** rather than gut feel.
-
-</td></tr>
-</table>
-
----
-
-## 💡 Our Solution — RetailMind
-
-RetailMind analyzes multiple candidate areas and recommends the most promising location using real-world data and an explainable **Opportunity Score**.
-
-```
-📍 Location Discovery    →  Identifies potential business zones
-🏪 Competition Analysis  →  Evaluates nearby competitors and anchor points
-👥 Demographic Analysis  →  Studies population, age profile, purchasing power
-🚶 Footfall Potential    →  Estimates commercial activity and accessibility
-🧠 Opportunity Scoring   →  Combines key factors into a 0–100 score
-🏆 Smart Recommendation  →  Ranks locations, recommends the best opportunity
-🗺️ Visual Insights       →  Interactive opportunity map + business report
-```
-
----
-
-## 🏗️ System Architecture
-
-RetailMind uses a **multi-agent architecture** where an MCP-based Planner coordinates four specialized components. Their outputs flow into the Opportunity Engine, which scores and ranks every zone before rendering the map and final report.
+RetailMind uses a **multi-agent architecture** where the MCP-based Planner coordinates four specialized components. Their outputs flow into the Opportunity Engine, which scores and ranks every zone before rendering the map and final report.
 
 ```mermaid
 flowchart TD
@@ -199,78 +156,60 @@ flowchart TD
 
 </details>
 
----
-
-## 🤖 Intelligence Components
+## Intelligence Components
 
 ### 🗺️ 1. Maps Agent — *Location Discovery*
 
-> Responsible for finding **where** to look.
+Responsible for finding **where** to look.
 
 - Identifies candidate retail zones within the selected city and search radius
 - Retrieves real geographic locations and coordinates
 - Supplies the location set consumed by every downstream component
 - **Data source:** Geoapify location/map data
 
----
-
 ### 📍 2. Places Agent — *Competitive Landscape*
 
-> Responsible for understanding **what's already there**.
+Responsible for understanding **what's already there**.
 
 - Finds nearby competitors matched to the selected business type
 - Identifies anchor points and important nearby places
 - Evaluates the commercial environment around each zone
 - Determines competition level and commercial attractiveness
 
----
-
 ### 👥 3. Demographics Agent — *Who Lives There*
 
-> Responsible for profiling **the customer base**.
+Responsible for profiling **the customer base**.
 
 - Analyzes population around each candidate location
 - Calculates the **18–35 age-group profile**
 - Estimates purchasing-power potential from surrounding commercial and affluence signals
 - **Data source:** WorldPop population & age data
 
----
-
 ### 🚶 4. Traffic / Footfall Agent — *Customer Movement*
 
-> Responsible for estimating **how busy** a zone is.
-
-Analyzes real nearby facilities across six signal categories:
+Responsible for estimating **how busy** a zone is, across six signal categories:
 
 | | | |
 |---|---|---|
 | 🚌 Public transport | 🎓 Educational institutions | 🏬 Commercial areas |
 | 🍽️ Restaurants & catering | 🎭 Entertainment locations | 🏥 Healthcare facilities |
 
-These accessibility and activity signals are converted into a **Footfall Potential Score**, highlighting zones likely to see stronger customer activity.
+These accessibility and activity signals are converted into a **Footfall Potential Score**.
 
 > [!NOTE]
 > The Footfall Potential Score is a **derived accessibility/activity indicator** — it is *not* a direct pedestrian count.
 
----
+### ⚙️ Opportunity Engine — *Not an Agent*
 
-## ⚙️ Opportunity Engine
+A deterministic scoring layer that consumes all four component outputs and turns them into a decision:
 
-> **Not an agent** — a deterministic scoring layer.
+1. Combines footfall potential, population, purchasing-power proxy, age profile, competition, and anchor points
+2. Applies the defined **weighted scoring model**
+3. Ranks all candidate zones
+4. Selects the strongest retail location
+5. Generates the final **Opportunity Score**
 
-The Opportunity Engine consumes the outputs of all four analysis components and turns them into a decision.
-
-| Step | Action |
-|:--:|---|
-| **1** | Combines footfall potential, population, purchasing-power proxy, age profile, competition, and anchor points |
-| **2** | Applies the defined **weighted scoring model** |
-| **3** | Ranks all candidate zones |
-| **4** | Selects the strongest retail location |
-| **5** | Generates the final **Opportunity Score** |
-
----
-
-## 🧠 Opportunity Scoring Model
+## Opportunity Scoring Model
 
 The final Opportunity Score ranges from **0 to 100**.
 
@@ -286,23 +225,7 @@ The final Opportunity Score ranges from **0 to 100**.
 
 This multi-dimensional model lets RetailMind compare candidate locations holistically instead of over-fitting to a single factor.
 
----
-
-## 🔌 MCP Capabilities
-
-RetailMind uses the **Model Context Protocol** to provide a structured, modular workflow between its analysis components.
-
-| Capability | Purpose |
-|---|---|
-| **🧭 Agent Orchestration** | Coordinates all analysis modules through the RetailMind Planner |
-| **🛠️ Tool Execution** | Lets specialized tools perform focused location analysis |
-| **📡 Structured Communication** | Standardizes input/output exchange between components |
-| **⚡ Real-Time Data Integration** | Connects analysis components to live external data sources |
-| **🧩 Modular Architecture** | Allows tools and data providers to be swapped or upgraded independently |
-
----
-
-## 🧰 MCP Tools
+## MCP Tools
 
 | MCP Tool | Function |
 |---|---|
@@ -312,11 +235,11 @@ RetailMind uses the **Model Context Protocol** to provide a structured, modular 
 | 🚶 **Traffic Tool** | Calculates footfall potential from nearby activity signals |
 | ⚙️ **Opportunity Engine** | Combines insights, scores zones, and ranks opportunities |
 
----
+**MCP capabilities in use:** agent orchestration · tool execution · structured communication · real-time data integration · modular architecture.
 
-## 📥 User Inputs
+## Inputs & Outputs
 
-RetailMind begins its analysis from four simple inputs.
+### 📥 Inputs
 
 | Input | Description |
 |---|---|
@@ -325,8 +248,6 @@ RetailMind begins its analysis from four simple inputs.
 | 💰 **Investment Budget** | Available investment budget |
 | 📍 **Search Radius** | Geographic radius used to discover candidate areas |
 
-**Example**
-
 ```yaml
 Business Type : Coffee Shop
 City          : Coimbatore
@@ -334,44 +255,24 @@ Budget        : ₹1,00,00,000
 Search Radius : 5 km
 ```
 
----
+### 📤 Outputs
 
-## 📤 RetailMind Outputs
+| 🏆 Recommendation | 📊 Supporting Intelligence |
+|---|---|
+| Recommended Retail Location | Footfall Potential Score |
+| Opportunity Score (0–100) | Demographic Score |
+| Ranked Candidate Zones | Competition Insights |
+| Interactive Opportunity Map | Cost-Pressure / Budget Insights |
+| | Potential Risks & Business Suggestions |
+| | Executive Summary |
 
-<table>
-<tr><td width="50%" valign="top">
-
-**🏆 Recommendation**
-- Recommended Retail Location
-- Opportunity Score (0–100)
-- Ranked Candidate Zones
-- Interactive Opportunity Map
-
-</td><td width="50%" valign="top">
-
-**📊 Supporting Intelligence**
-- Footfall Potential Score
-- Demographic Score
-- Competition Insights
-- Cost-Pressure / Budget Insights
-- Potential Risks
-- Business Suggestions
-- Executive Summary
-
-</td></tr>
-</table>
-
----
-
-## 🌐 Data Sources
+## Data Sources & Transparency
 
 | Data Source | Used For |
 |---|---|
 | **Geoapify** | Geographic locations, candidate zones, POIs, competitors, anchor points, nearby facility/activity signals |
 | **WorldPop** | Population and age-related demographic information |
 | **RetailMind Derived Models** | Purchasing-power proxy, footfall potential, cost pressure, Opportunity Score |
-
-### 🔍 Data Transparency
 
 > [!IMPORTANT]
 > Some RetailMind indicators are **derived rather than directly measured**.
@@ -384,9 +285,7 @@ Search Radius : 5 km
 
 This keeps every recommendation **explainable**, with a clear line between observed data and derived indicators.
 
----
-
-## 🔄 End-to-End Workflow
+## End-to-End Workflow
 
 | Step | Stage | What Happens |
 |:--:|---|---|
@@ -401,43 +300,65 @@ This keeps every recommendation **explainable**, with a clear line between obser
 | **9️⃣** | **Opportunity Map** | Results are visualized on real geographic coordinates |
 | **🔟** | **Final Report** | Recommendation, alternatives, risks, suggestions, and summary are delivered |
 
----
+## Getting Started
 
-## 📊 Core Features
+### Prerequisites
 
-| Core Feature | Description |
-|---|---|
-| 📍 **Smart Location Discovery** | Identifies potential retail zones based on business requirements |
-| 🏪 **Competition Analysis** | Evaluates nearby competitors and commercial anchor points |
-| 👥 **Demographic Intelligence** | Analyzes population, age profile, and purchasing-power indicators |
-| 🚶 **Footfall Potential Analysis** | Estimates customer activity from accessibility and facility data |
-| 🧠 **Opportunity Scoring** | Generates a 0–100 score across multiple location factors |
-| 🏆 **Zone Ranking** | Compares candidate zones and recommends the strongest |
-| 🗺️ **Opportunity Map** | Visually displays and compares analyzed locations |
-| 📊 **Business Insights** | Delivers key insights, risks, suggestions, and a final recommendation |
+- Node.js 18+
+- A [Geoapify](https://www.geoapify.com/) API key
+- An MCP-compatible client (Claude Desktop, Cursor, etc.)
 
----
+### Installation
 
-## 🚀 Why RetailMind?
+```bash
+git clone https://github.com/your-username/retailmind.git
+cd retailmind
+npm install
+```
 
-Traditional retail location selection forces businesses to manually investigate accessibility, competitors, population, demographics, commercial activity, customer movement, and cost — **each in isolation**, making real comparison nearly impossible.
+### Configuration
 
-**RetailMind brings all of it into one decision-support system.**
+Copy the example environment file and add your own values:
 
-<div align="center">
+```bash
+cp .env.example .env
+```
 
-| ❌ Traditional Approach | ✅ RetailMind |
-|---|---|
-| Scattered, manual research | Unified automated analysis |
-| Factors evaluated separately | Multi-factor weighted scoring |
-| Gut-feel decisions | Explainable 0–100 score |
-| "Which location?" | "Which location — **and why**?" |
+```env
+GEOAPIFY_API_KEY=your_geoapify_key_here
+```
 
-</div>
+### Run
 
----
+```bash
+npm run start
+```
 
-## 📌 Project Status
+## Connect to an MCP Client
+
+Add this server to your MCP client configuration. A typical entry looks like:
+
+```json
+{
+  "mcpServers": {
+    "retailmind": {
+      "command": "npm",
+      "args": ["run", "start"]
+    }
+  }
+}
+```
+
+Restart your client and the RetailMind tools will be available to your AI assistant.
+
+### Try it
+
+```text
+Analyze the best location to open a coffee shop in Coimbatore
+with a ₹1 crore budget within a 5 km radius.
+```
+
+## Project Status
 
 | Component | Status |
 |---|:--:|
@@ -452,11 +373,7 @@ Traditional retail location selection forces businesses to manually investigate 
 | 📊 Business Insights | ✅ Complete |
 | 📄 Executive Summary | ✅ Complete |
 
----
-
-## 🛠️ Technology & Services
-
-<div align="center">
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -469,24 +386,51 @@ Traditional retail location selection forces businesses to manually investigate 
 | **Interface** | Interactive Map / Widget UI |
 | **Design** | Modular service-based architecture |
 
-</div>
+## Deploy Your Own MCP App
+
+Want to build and ship an MCP server like this one? **[Nitrostack](https://nitrostack.ai)** lets you create, deploy, and host MCP apps in minutes — no infrastructure to manage.
+
+👉 **Start building:** [https://nitrostack.ai](https://nitrostack.ai)
+
+## Explore More MCP Apps
+
+- 🌙 Discover and share MCP projects with the community on [r/mcptothemoon](https://www.reddit.com/r/mcptothemoon/)
+- 🧰 Browse a growing catalog of MCP apps on [Nitrostack](https://nitrostack.ai/apps)
+
+## FAQ
+
+### What is an MCP server?
+
+An MCP server implements the Model Context Protocol to expose tools, resources, and prompts that AI assistants can call. It lets an AI model take real actions and access live data.
+
+### What does RetailMind do?
+
+It analyzes multiple candidate zones in a city and recommends the strongest location for a new retail outlet — scoring each zone from 0–100 based on footfall potential, population, competition, purchasing power, age profile, and anchor points, then explaining the ranking.
+
+### How is the Opportunity Score calculated?
+
+Through a transparent weighted model: footfall potential (30%), population (20%), competition (20%), purchasing-power proxy (15%), 18–35 age profile (10%), and anchor points (5%). See [Opportunity Scoring Model](#opportunity-scoring-model).
+
+### Is the footfall data a real pedestrian count?
+
+No. It is a **derived** accessibility/activity indicator built from nearby transport, education, commercial, dining, entertainment, and healthcare signals. See [Data Sources & Transparency](#data-sources--transparency).
+
+### Which AI clients does this work with?
+
+Any MCP-compatible client, including Claude Desktop and Cursor. New clients are adding MCP support regularly.
+
+### How do I deploy my own MCP app?
+
+Use [Nitrostack](https://nitrostack.ai) to build, deploy, and host MCP apps without managing infrastructure.
+
+## Keywords
+
+`Enterprise AI & Workplace Automation` · `RetailMind` · `retail location intelligence` · `site selection` · `opportunity score` · `footfall analysis` · `geospatial analytics` · `MCP` · `Model Context Protocol` · `MCP server` · `MCP app` · `AI tools` · `AI agents` · `LLM tools` · `Claude MCP` · `Nitrostack` · `Geoapify` · `WorldPop` · `deploy MCP server` · `build MCP app`
+
+## License
+
+MIT © 2026
 
 ---
 
-## 🎯 Final Goal
-
-RetailMind aims to transform complex location information into **clear, actionable retail intelligence** — so businesses can make informed, defensible decisions when choosing where to open their next outlet.
-
----
-
-<div align="center">
-
-## 🧠 RetailMind
-
-### *AI-Powered Retail Location Intelligence*
-
-**Discover • Analyze • Compare • Decide**
-
-*From business requirements to location decisions — powered by real-world data and modular location intelligence.*
-
-</div>
+Built with ❤️ using the Model Context Protocol on [Nitrostack](https://nitrostack.ai). Share your MCP app on [r/mcptothemoon](https://www.reddit.com/r/mcptothemoon/).

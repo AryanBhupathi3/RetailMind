@@ -122,15 +122,6 @@ if (Math.abs(WEIGHT_SUM - 1) > 1e-9) {
   );
 }
 
-/**
- * Share of the total score that is demographic in nature. Used to express the
- * user-facing demographic score on a 0-100 scale while keeping the three
- * demographic components in the same proportion they carry in the overall
- * Opportunity Score.
- */
-const DEMOGRAPHIC_WEIGHT_SUM =
-  WEIGHTS.population + WEIGHTS.purchasingPower + WEIGHTS.ageProfile;
-
 function clampScore(value: number): number {
   return Math.min(100, Math.max(0, value));
 }
@@ -217,8 +208,13 @@ export class OpportunityEngineService {
           (traffic.footTraffic / MAX_FOOTFALL_POTENTIAL) * 100
         );
 
+        // WorldPop can be offline; when it is, population and age are absent
+        // rather than guessed, and their weight is redistributed below.
+        const hasPopulation = demographics.population !== null;
+        const hasAge = demographics.age18to35Pct !== null;
+
         const populationScore = clampScore(
-          (demographics.population / MAX_POPULATION) * 100
+          ((demographics.population ?? 0) / MAX_POPULATION) * 100
         );
 
         // medianIncome carries the derived purchasing-power proxy, not income.
@@ -228,8 +224,7 @@ export class OpportunityEngineService {
 
         // Linear rescale of the young-adult share across the documented
         // AGE_FLOOR_PCT..AGE_CEILING_PCT band (see the constants above).
-        const ageProfileScore = clampScore(
-          ((demographics.age18to35Pct - AGE_FLOOR_PCT) /
+        const ageProfileScore = clampScore((((demographics.age18to35Pct ?? 0) - AGE_FLOOR_PCT) /
             (AGE_CEILING_PCT - AGE_FLOOR_PCT)) *
             100
         );
@@ -252,25 +247,46 @@ export class OpportunityEngineService {
 
         const budgetFitScore = budgetFitFor(costPressureIndex, costCeiling);
 
-        // The demographic figure shown to the user combines exactly the three
+        /**
+         * Only components we actually measured contribute. Their weights are
+         * renormalized to sum to 1.0, so a missing upstream lowers confidence
+         * without silently dragging every zone's score down — which is what
+         * scoring an absent signal as zero would do.
+         */
+        const weightedAverage = (
+          parts: { weight: number; score: number; available?: boolean }[]
+        ): number => {
+          const usable = parts.filter((p) => p.available !== false);
+          const totalWeight = usable.reduce((sum, p) => sum + p.weight, 0);
+          if (totalWeight === 0) return 0;
+          return (
+            usable.reduce((sum, p) => sum + p.weight * p.score, 0) / totalWeight
+          );
+        };
+
+        // The demographic figure shown to the user combines exactly the
         // demographic components the Opportunity Score uses, in exactly the
         // proportion they carry there — so it explains the ranking instead of
         // being an unrelated average.
         const demographicScore = clampScore(
-          (WEIGHTS.population * populationScore +
-            WEIGHTS.purchasingPower * purchasingPowerScore +
-            WEIGHTS.ageProfile * ageProfileScore) /
-            DEMOGRAPHIC_WEIGHT_SUM
+          weightedAverage([
+            { weight: WEIGHTS.population, score: populationScore, available: hasPopulation },
+            { weight: WEIGHTS.purchasingPower, score: purchasingPowerScore },
+            { weight: WEIGHTS.ageProfile, score: ageProfileScore, available: hasAge },
+          ])
         );
 
-        const opportunityScore =
-          WEIGHTS.footfallPotential * footfallPotentialScore +
-          WEIGHTS.population * populationScore +
-          WEIGHTS.purchasingPower * purchasingPowerScore +
-          WEIGHTS.ageProfile * ageProfileScore +
-          WEIGHTS.competition * competitionScore +
-          WEIGHTS.anchors * anchorScore +
-          WEIGHTS.budgetFit * budgetFitScore;
+        const opportunityScore = clampScore(
+          weightedAverage([
+            { weight: WEIGHTS.footfallPotential, score: footfallPotentialScore },
+            { weight: WEIGHTS.population, score: populationScore, available: hasPopulation },
+            { weight: WEIGHTS.purchasingPower, score: purchasingPowerScore },
+            { weight: WEIGHTS.ageProfile, score: ageProfileScore, available: hasAge },
+            { weight: WEIGHTS.competition, score: competitionScore },
+            { weight: WEIGHTS.anchors, score: anchorScore },
+            { weight: WEIGHTS.budgetFit, score: budgetFitScore },
+          ])
+        );
 
         return {
           zone: zone.name,
@@ -345,6 +361,17 @@ export class OpportunityEngineService {
       })),
 
       budgetAssumption: describeBudgetAssumption(input.budget),
+
+      // Stated explicitly rather than left for the reader to notice that a
+      // column is empty.
+      dataAvailabilityNote: zoneOutputs.some(
+        (z) => z.demographics.population === null
+      )
+        ? 'Population and age profile are unavailable — the WorldPop API did not respond. ' +
+          'Scores were computed from the remaining measured signals (footfall potential, ' +
+          'purchasing power, competition, anchor points and budget fit) with their weights ' +
+          'renormalized. No population figures were estimated or substituted.'
+        : null,
     };
   }
 }

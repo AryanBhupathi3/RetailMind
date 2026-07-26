@@ -20,7 +20,8 @@ export interface ZoneScore {
   demographicScore: number;
   competitionScore: number;
   anchorScore: number;
-  population: number;
+  /** Null when WorldPop was unreachable; never estimated. */
+  population: number | null;
   competitorCount: number;
   /** Relative commercial cost pressure, 0-100 — derived, not a rent figure. */
   costPressureIndex: number;
@@ -39,6 +40,8 @@ export interface AnalyzeResponse {
   zones: ZoneScore[];
   /** States the budget assumption applied, and that it is not measured rent data. */
   budgetAssumption: string;
+  /** Set when a data source was unavailable and its weight was redistributed. */
+  dataAvailabilityNote: string | null;
 }
 
 export interface AnalyzeRequest {

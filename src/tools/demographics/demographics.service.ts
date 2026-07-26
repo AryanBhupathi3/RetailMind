@@ -220,22 +220,38 @@ export class DemographicsService {
     // The slow WorldPop lookup is shared across every zone in the same ~11km
     // cell; the fast per-zone purchasing-power proxy is not, so zones still
     // differ from one another. Both run concurrently.
+    //
+    // WorldPop is allowed to fail WITHOUT failing the whole analysis: it is a
+    // single upstream that has gone fully offline before, and losing it should
+    // cost us population and age only, not the entire report. The purchasing
+    // power proxy comes from a different provider and is unaffected.
+    //
+    // Nothing is estimated to fill the gap — an absent measurement is
+    // returned as null and reported as unavailable all the way to the UI.
     const [catchment, purchasingPowerIndex] = await Promise.all([
-      this.getCachedCatchmentPopulation(zone),
+      this.getCachedCatchmentPopulation(zone).catch((err: unknown) => {
+        console.error(
+          `[demographics] WorldPop unavailable for "${zone.name}": ` +
+            `${err instanceof Error ? err.message : String(err)}. ` +
+            `Continuing without population and age.`
+        );
+        return null;
+      }),
       this.computePurchasingPower(zone),
     ]);
 
     console.error(
-      `[demographics] zone="${zone.name}" population=${Math.round(catchment.population)} ` +
-        `age18to35=${catchment.age18to35Pct.toFixed(1)}% ` +
+      `[demographics] zone="${zone.name}" ` +
+        `population=${catchment ? Math.round(catchment.population) : 'UNAVAILABLE'} ` +
+        `age18to35=${catchment ? `${catchment.age18to35Pct.toFixed(1)}%` : 'UNAVAILABLE'} ` +
         `purchasingPowerIndex=${Math.round(purchasingPowerIndex)}`
     );
 
     return {
       zone: zone.name,
-      population: Math.round(catchment.population),
+      population: catchment ? Math.round(catchment.population) : null,
       medianIncome: Math.round(purchasingPowerIndex),
-      age18to35Pct: Math.round(catchment.age18to35Pct),
+      age18to35Pct: catchment ? Math.round(catchment.age18to35Pct) : null,
     };
   }
 

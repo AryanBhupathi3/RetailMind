@@ -22,7 +22,7 @@ const ZoneScoreSchema = z.object({
   demographicScore: z.number(),
   competitionScore: z.number(),
   anchorScore: z.number(),
-  population: z.number(),
+  population: z.number().nullable(),
   competitorCount: z.number(),
   costPressureIndex: z.number(),
   budgetFitScore: z.number(),
@@ -41,6 +41,10 @@ const AnalyzeOutputSchema = z.object({
   budgetAssumption: z
     .string()
     .describe('States the budget assumption applied, and that it is not measured rent data'),
+  dataAvailabilityNote: z
+    .string()
+    .nullable()
+    .describe('Set when a data source was unavailable and its weight was redistributed'),
 });
 
 /**

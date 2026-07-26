@@ -49,6 +49,7 @@ export default function RetailAnalysis({ data }: { data?: unknown }) {
     risks,
     suggestions,
     budgetAssumption,
+    dataAvailabilityNote,
   } = analysis;
 
   return (
@@ -73,6 +74,21 @@ export default function RetailAnalysis({ data }: { data?: unknown }) {
             — based on {zones.length} analyzed zones.
           </p>
         </section>
+
+        {/* Shown at the top, above the scores it affected, so a degraded
+            report can never be mistaken for a complete one. */}
+        {dataAvailabilityNote && (
+          <section className="mb-6">
+            <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5">
+              <p className="text-sm font-semibold text-orange-900">
+                Partial data
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-orange-800">
+                {dataAvailabilityNote}
+              </p>
+            </div>
+          </section>
+        )}
 
         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <ScoreCard
